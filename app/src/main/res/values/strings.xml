@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">weUno</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <string name="connectedPlayersCounterString">Connected %1$d of 4</string>
+</resources>

@@ -1,0 +1,478 @@
+package edu.vub.at.weuno;
+
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
+import android.support.design.widget.TextInputEditText;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.helper.ItemTouchHelper;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.widget.Button;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Queue;
+
+import edu.vub.at.IAT;
+import edu.vub.at.android.util.IATAndroid;
+import edu.vub.at.weuno.interfaces.ATWeUno;
+import edu.vub.at.weuno.interfaces.JWeUno;
+
+public class MainActivity extends AppCompatActivity implements HandAction, JWeUno {
+
+    // Ambient Talk Objects
+    private static IAT iat;
+    private static final int _ASSET_INSTALLER_ = 0;
+    private static ATWeUno atwu;
+    // Handler to communicate UI <-> AT threads.
+    private static Handler mHandler;
+    public static Handler getmHandler() {
+        return mHandler;
+    }
+    // -------
+
+    // Dialog UI Elements
+    // Create the AlertDialog
+    AlertDialog dialog;
+    private AlertDialog.Builder builder;
+    private LayoutInflater inflater;
+    private View dialogView;
+
+    private TextView playerCountTextView;
+    private TextInputEditText playerNicknameEditText;
+    private Button connectButton;
+    private  Button startGameButton;
+    // -------
+
+    // Game UI Elements
+    private CardViewAdapter adapter;
+
+    private DrawingView drawingview;
+    private Deck cardDeck;
+    private TextView txtUno;
+    private Button btnUno, btnUnoTop, btnUnoLeft, btnUnoRight;
+    private Animation animUnoTop, animUnoBottom, animUnoLeft, animUnoRight;
+    // -------
+
+    // Constants
+    private static final int _MSG_NEW_PLAYER_ = 1;
+    private static final int _MSG_INIT_DECK_ = 2;
+    // -------
+
+    // Global Game Variables
+    int playersCounter;
+    boolean isGameStarted; // State which we need to check when we start the application.
+    // TODO: State of current game (if disconected)
+    // TODO: Players Information
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        // Ambient Talk Initialization
+        if (iat == null) {
+            Intent i = new Intent(this, WeUnoAssetInstaller.class);
+            startActivityForResult(i, _ASSET_INSTALLER_);
+        }
+
+        /*
+        When player starts the application a dialog window appears on the screen.
+        The screen is used to connect to the game and to start the game itself, if the number
+        of players at least 2 and max 4.
+         */
+
+        // Initialize dialog
+        builder = new AlertDialog.Builder(this);
+        inflater = this.getLayoutInflater();
+        dialogView = inflater.inflate(R.layout.dialog_waiting_room, null);
+        builder.setView(dialogView);
+        builder.setCancelable(false);
+
+        // Create the AlertDialog
+        dialog = builder.create();
+        // Display the dialog
+        dialog.show();
+
+        // Init dialog elements
+        playerCountTextView = dialogView.findViewById(R.id.playerCountTextView);
+        playerNicknameEditText = dialogView.findViewById(R.id.playerNicknameEditText);
+        connectButton = dialogView.findViewById(R.id.connectButton);
+        startGameButton = dialogView.findViewById(R.id.startGameButton);
+        startGameButton.setEnabled(false); // Disable start game button by default.
+
+        // Init Game State
+        // Default connected users counter;
+        updateConnectedGamersCounter(0);
+        // First load of application sets game to false (not yet started).
+        isGameStarted = false;
+
+        connectButton.setOnClickListener(v -> {
+            if(playerNicknameEditText.getText().toString().isEmpty()) {
+                // Display warning that user should have a name;
+                Toast.makeText(this, "You have to enter your name", Toast.LENGTH_SHORT)
+                        .show();
+            } else {
+                // Send to message to AT part that a new user has been connected
+                getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEW_PLAYER_,
+                        playerNicknameEditText.getText().toString()));
+
+                // Disable Button, if already connected
+                connectButton.setEnabled(false);
+            }
+        });
+
+
+        startGameButton.setOnClickListener(v -> {
+            //isGameStarted = true;
+
+            dialog.hide();
+
+            // Call init game function here.
+            // This function initialize deck and notify other players.
+            initGame();
+
+            // Deck and Hand Views enable visibility
+            drawingview.setEnabled(true);
+            drawingview.setVisibility(View.VISIBLE);
+
+        });
+
+
+
+
+        // Init Deck View
+        // set up hand stack
+        ArrayList<Card> cards = new ArrayList<>();
+
+        // Init Deck View Elements
+        RecyclerView handView = findViewById(R.id.playerhand);
+        drawingview = findViewById(R.id.drawingview);
+        LinearLayoutManager horizontalLayoutManager = new LinearLayoutManager(MainActivity.this, LinearLayoutManager.HORIZONTAL, false);
+        handView.setLayoutManager(horizontalLayoutManager);
+        adapter = new CardViewAdapter(this, cards, this);
+        handView.setAdapter(adapter);
+
+        drawingview.setEnabled(false);
+        drawingview.setVisibility(View.INVISIBLE);
+
+        // reference the uno button and text view
+        txtUno = findViewById(R.id.txtUno);
+        btnUno = findViewById(R.id.btnUno);
+        btnUnoTop   = findViewById(R.id.btnUnoTop);
+        btnUnoLeft  = findViewById(R.id.btnUnoLeft);
+        btnUnoRight = findViewById(R.id.btnUnoRight);
+
+        MoveAndPlaceHelper mh = new MoveAndPlaceHelper(adapter);
+        ItemTouchHelper touchHelper = new ItemTouchHelper(mh);
+        touchHelper.attachToRecyclerView(handView);
+
+
+        // setup animations
+        animUnoTop    = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.uno_top);
+        animUnoBottom = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.uno_bottom);
+        animUnoLeft   = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.uno_left);
+        animUnoRight  = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.uno_right);
+
+
+        // show uno animation on click
+        btnUno.setOnClickListener(v -> {
+            startUnoAnimation(animUnoBottom);
+            //TODO: send uno signal to AmbientTalk world so that it can be distributed to others
+        });
+
+        // TODO: currently clicking on a player stack shows the uno animation, but it should behah changed to check if the player called uno in time
+        btnUnoTop.setOnClickListener(v -> { startUnoAnimation(animUnoTop); });
+        btnUnoLeft.setOnClickListener(v -> { startUnoAnimation(animUnoLeft); });
+        btnUnoRight.setOnClickListener(v -> { startUnoAnimation(animUnoRight); });
+
+    }
+
+    // TODO: call this when someone clicked start game.
+    @Override
+    public void initGame() {
+        cardDeck = new Deck(); //TODO: do this when a new round has started
+
+        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_INIT_DECK_,
+                cardDeck.getDeckSerialized()));
+
+        isGameStarted = true;
+
+        startGame();
+
+
+    }
+
+    public void startUnoAnimation(Animation animation){
+        runOnUiThread(() -> {
+            txtUno.setVisibility(View.VISIBLE);
+            txtUno.startAnimation(animation);
+        });
+    }
+
+    //TODO: call this whenever the player has to draw cards
+    public void drawCards(int n) {
+        runOnUiThread(() -> {
+            for (int i = 0; i < n; i++)
+                adapter.addCard(cardDeck.drawCard());
+        });
+    }
+
+    //TODO: call these methods from AmbientTalk indicating that another player has said Uno
+    public void topUnoAnimation() {
+        startUnoAnimation(animUnoTop);
+    }
+    public void leftUnoAnimation() {
+        startUnoAnimation(animUnoLeft);
+    }
+    public void rightUnoAnimation() {
+        startUnoAnimation(animUnoRight);
+    }
+
+    //TODO: call these methods from AmbientTalk to set the number of cards for the other players
+    public void setTopPlayerCardCount(int n) {
+        runOnUiThread(() -> {
+            drawingview.setTopPlayerCount(n);
+            drawingview.invalidate();
+        });
+    }
+    public void setLeftPlayerCardCount(int n) {
+        runOnUiThread(() -> {
+            drawingview.setLeftPlayerCount(n);
+            drawingview.invalidate();
+        });
+    }
+    public void setRightPlayerCardCount(int n) {
+        runOnUiThread(() -> {
+            drawingview.setRightPlayerCount(n);
+            drawingview.invalidate();
+        });
+    }
+
+    // this method is called when a user plays a card
+    // you should check if this is valid, if not you shouldn't update the drawingview and return false
+    @Override
+    public boolean cardPlayed(Card card) {
+
+        //TODO: don't do this if card is not valid, maybe show a toast indicating that the move is invalid and return false
+        drawingview.playCard(card);
+        drawingview.invalidate();
+        btnUno.setVisibility(adapter.getItemCount() < 2 ? View.VISIBLE : View.INVISIBLE);
+
+        return true;
+    }
+
+
+
+    // Manage AmbientTalk Startup
+
+
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.v("WeUno", "Return of Asset Installer activity");
+        switch (requestCode) {
+            case (_ASSET_INSTALLER_):
+                if (resultCode == Activity.RESULT_OK) {
+                    LooperThread lt = new LooperThread();
+                    lt.start();
+
+                    mHandler = lt.mHandler;
+                    new StartIATTask().execute((Void)null);
+                }
+                break;
+        }
+    }
+
+    @Override
+    public JWeUno registerAtApplication(ATWeUno uno) {
+        this.atwu = uno;
+        return this;
+    }
+
+    @Override
+    public void updateConnectedGamersCounter(int counter) {
+        runOnUiThread(() -> {
+            playerCountTextView.setText(getString(R.string.connectedPlayersCounterString, counter));
+            this.playersCounter = counter;
+        });
+    }
+
+    @Override
+    public void updateDeck(String[][] deck) {
+            LinkedList<Card> deck_ = new LinkedList<>();
+
+            for(int i=0; i<deck.length; i++) {
+                for(int z=0; z<2; z++) {
+                    deck_.add(new Card(Card.Color.valueOf(deck[i][0]),
+                            Card.Action.valueOf(deck[i][1])));
+                }
+            }
+
+            runOnUiThread(() -> {
+                cardDeck = new Deck(deck_);
+
+                // Setup top card
+                //drawingview.playCard(cardDeck.peekTopCard());
+
+                // Deck and Hand Views enable visibility
+                dialog.hide();
+                drawingview.setEnabled(true);
+                drawingview.setVisibility(View.VISIBLE);
+                drawingview.invalidate();
+
+                // START GAME
+                startGame();
+            });
+    }
+
+    @Override
+    public void startGame() {
+        isGameStarted = true;
+
+        // Setup top card
+        drawingview.playCard(cardDeck.peekTopCard());
+
+        drawingview.setLeftPlayerCount(7); //TODO: set initially to 0
+        drawingview.setTopPlayerCount(7);
+        drawingview.setRightPlayerCount(7);
+
+        drawCards(7);
+
+    }
+
+    /*
+    Local storage functions.
+     */
+
+    public SharedPreferences getSharedPref() {
+        SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
+        return sharedPref;
+
+    }
+
+    public void putInt(String key, int value) {
+        SharedPreferences.Editor editor = getSharedPref().edit();
+        editor.putInt(key, value);
+        editor.commit();
+    }
+
+    public void putString(String key, String value) {
+        SharedPreferences.Editor editor = getSharedPref().edit();
+        editor.putString(key, value);
+        editor.commit();
+    }
+
+    public int getInt(String key) {
+        return getSharedPref().getInt(key, -1);
+    }
+
+    public String getString(String key) {
+        return getSharedPref().getString(key, "empty");
+    }
+
+
+    @Override
+    public void disableConnectButton() {
+        runOnUiThread(() -> connectButton.setEnabled(false));
+    }
+
+    @Override
+    public void enableGameButton() {
+        runOnUiThread(() -> startGameButton.setEnabled(true));
+    }
+
+    public class StartIATTask extends AsyncTask<Void, String, Void> {
+
+        private ProgressDialog pd;
+
+        protected void onProgressUpdate(String... values) {
+            super.onProgressUpdate(values);
+            pd.setMessage(values[0]);
+        }
+
+        protected void onPreExecute() {
+            super.onPreExecute();
+            pd = ProgressDialog.show(MainActivity.this, "weUno", "Starting AmbientTalk");
+        }
+
+        protected void onPostExecute(Void result) {
+            super.onPostExecute(result);
+            pd.dismiss();
+        }
+
+        @Override
+        protected Void doInBackground(Void... arg0) {
+            try {
+                iat = IATAndroid.create(MainActivity.this);
+
+                this.publishProgress("Loading weUno code");
+                iat.evalAndPrint("import /.demo.weUno.weUno.makeWeUno()", System.err);
+            } catch (Exception e) {
+                Log.e("AmbientTalk", "Could not start IAT", e);
+            }
+            return null;
+        }
+    }
+
+    // Call the AmbientTalk methods in a separate thread to avoid blocking the UI.
+    private class LooperThread extends Thread {
+
+        public Handler mHandler = new Handler() {
+
+            public void handleMessage(Message msg) {
+                if (null == atwu) {
+                    Log.i("mHandler: ", "ATWU is null :(");
+                    return;
+                }
+                switch (msg.what) {
+                    case _MSG_NEW_PLAYER_: {
+                        String playerName = (String) msg.obj;
+                        atwu.connectPlayer(playerName);
+                        break;
+                    }
+                    case _MSG_INIT_DECK_: {
+                        String[][] deck = (String[][]) msg.obj;
+                        atwu.initializeDeck(deck);
+                        break;
+                    }
+
+                    /*
+                    case _MSG_TOUCH_MOVE_:
+                        atws.touchMove((Vector<Float>) msg.obj);
+                        break;
+                    case _MSG_TOUCH_END_: {
+                        float[] endPoint = (float[]) msg.obj;
+                        atws.touchEnd(endPoint[0], endPoint[1]);
+                        break;
+                    }
+                    case _MSG_RESET_:
+                        atws.reset();
+                        break;
+                        */
+                }
+            }
+        };
+
+        public void run() {
+            Looper.prepare();
+            Looper.loop();
+        }
+    }
+}

@@ -1,0 +1,180 @@
+import /.at.lang.futures;
+enableFutures(false);
+
+
+def log(text) {
+  Android.Log.i("weUno", text);
+};
+
+def makeWeUno() {
+  // myID := /.at.support.util.randomNumberBetween(1, 125)
+  // Init this variable when device's player clicked connect button.
+  def myReference := self;
+
+  //def myID;
+  def myName; // Let us suppose that each name is unique. (impossible to have two players with the same name).
+
+  // By default all devices have id == 0.
+  //We change our ID as soon as we get new device discovered.
+  //If we discover new device -> we change our ID, unless we are already connected to the game.
+  def myID := 0;
+
+  // isConnected variable is our condition checker.
+  // !! We will not change myID if isConnected is true.
+  def isConnected := false;
+
+  // Players who connected to the session. By default is zero.
+  // Getter function getPlayersCounter().
+  def playersCounter := 0;
+
+  // Add new players to these lists (exclude player on this playing device).
+  //HashMap of [userName,Far Reference]
+  // UPD: HashMap of [userID,[Username, Far Reference]]
+  def otherPlayersHashMap := jlobby.java.util.HashMap.new();
+  //Array of far references, avoids iterating over hashmap
+  def otherPlayers := [];
+
+  def gui; // reference to Android UI object.
+
+  def myDeck; // created deck variable because impossible to pass java objects in methods in AT. :(
+
+  deftype UnoGame;
+
+  //interface for android gui.
+  def localInterface := object: {
+    def connectPlayer(username) {
+        myName := username;
+
+        isConnected := true;
+
+        // Update players counter for this device
+        remoteInterface.setPlayersCounter(playersCounter + 1);
+        gui.updateConnectedGamersCounter(playersCounter);
+
+        otherPlayers.each: { |pl|
+            // Notify other players about the new player
+            pl <- newPlayer(getId(), username, myReference, getPlayersCounter());
+        };
+        /////
+    };
+
+    def getDeck() { myDeck };
+
+    def setDeck(newDeck) { myDeck := newDeck };
+
+    def initializeDeck(Deck) {
+        setDeck(Deck);
+        // Sync deck on other devices.
+        otherPlayers.each: { |pl| pl <- updateDecks(Deck) };
+    };
+
+    def getId() {
+        myID;
+    };
+
+
+    def getPlayersCounter() { playersCounter };
+
+    def nextPlayer() {
+        // Next Player is id + 1, unless id == size, then id == 0;
+    };
+  };
+
+  //interface for remote painters.
+  def remoteInterface := object: {
+    def getTestVariable := "Testik"; // Удалить позже
+
+    //def sendReferenceToGUI() {}
+    def receiveTestMessageFromAnother() { log("HEY FROM OUTSIDE"); }; // Удалить позже
+
+    // Add new player which clicked connect button in players list.
+    def getPlayer() {
+        myName;
+    };
+
+    def setPlayersCounter(counter) {
+        playersCounter := counter;
+
+        // if players counter < 2 -> disable play button !!! Disabled by default
+
+        if: (playersCounter >= 2) then: {
+            // if players counter > 2 -> enable game button
+            gui.enableGameButton();
+        } else: {
+            if: (playersCounter == 4) then: {
+                // if players counter == 4 -> disable connect button
+                gui.disableConnectButton();
+            }
+        };
+    };
+
+    def newPlayer(UserID, Username, FarRef, PlayersCounter) {
+        log("Check");
+        if: ((otherPlayersHashMap.containsKey(UserID)).not()) then: {
+
+                // Update this device id to the new one. !!! Only if you are not connected !!!
+                if: ((isConnected).not()) then: {
+                    myID := UserID + 1;
+                };
+
+                // Add new user to hash map if no such user has been found
+                otherPlayersHashMap.put(UserID,[Username,FarRef]);
+
+                // Sync players counter
+                setPlayersCounter(PlayersCounter);
+
+                // Update UI
+                gui.updateConnectedGamersCounter(playersCounter);
+        };
+        log("My ID: " + myID);
+        log("Other Players: " + otherPlayersHashMap.toString());
+    };
+
+    def updateDecks(deck) {
+        log("IS IT HERE?");
+        log("PRINT DECK IN AT: " + deck);
+        gui.updateDeck(deck);
+    };
+
+  }; //end-remoteInterface
+
+
+   def goOnline() {
+   	// setup peer-to-peer service discovery
+
+   	export: remoteInterface as: UnoGame;
+     		whenever: UnoGame discovered: { |ref|
+     		    log("Test from One");
+     		    ref <- receiveTestMessageFromAnother();
+
+     		    if: (!otherPlayers.contains(ref)) then: {
+                    otherPlayers := otherPlayers + [ref];
+                };
+     			//when: ref<-receiveTestMessageFromAnother()@FutureMessage becomes: { |varTest|
+     			//	log("User Variable Test:" + varTest);
+     			//	};
+
+                whenever: ref disconnected: {
+                    //jPortalPong.died(id);
+                    log("Device disconected:" + ref);
+                    // TODO
+                };
+
+                whenever: ref reconnected: {
+                    // jPortalPong.resurrected(id);
+                    log("Device reconected:" + ref);
+                    // TODO
+                };
+     		};
+   };
+
+  goOnline();
+  log("Hallo Android!");
+
+  // example symbiosis
+  gui := Android.parent.registerAtApplication(localInterface);
+  Android.parent.topUnoAnimation();
+};
+
+network.online;
+self;
