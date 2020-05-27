@@ -35,6 +35,7 @@ import java.util.Queue;
 import edu.vub.at.IAT;
 import edu.vub.at.actors.ATFarReference;
 import edu.vub.at.android.util.IATAndroid;
+import edu.vub.at.objects.natives.NATTable;
 import edu.vub.at.weuno.interfaces.ATWeUno;
 import edu.vub.at.weuno.interfaces.JWeUno;
 
@@ -284,18 +285,23 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     }
 
     //TODO: call these methods from AmbientTalk to set the number of cards for the other players
+    @Override
     public void setTopPlayerCardCount(int n) {
         runOnUiThread(() -> {
             drawingview.setTopPlayerCount(n);
             drawingview.invalidate();
         });
     }
+
+    @Override
     public void setLeftPlayerCardCount(int n) {
         runOnUiThread(() -> {
             drawingview.setLeftPlayerCount(n);
             drawingview.invalidate();
         });
     }
+
+    @Override
     public void setRightPlayerCardCount(int n) {
         runOnUiThread(() -> {
             drawingview.setRightPlayerCount(n);
@@ -391,30 +397,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
         drawCards(7);
 
-    }
-
-
-    @Override
-    public void testFunction(HashMap<String, String> otherRefs, ATFarReference FarRefSender, ATFarReference FarRefReceiver) {
-
-        for (Map.Entry me : otherRefs.entrySet()) {
-            if(((Object[]) (me.getValue()))[1] == FarRefSender) {
-                Log.i("HM Sovpadenie", "Key: " + me.getKey() + " | " + "Value: " + ((Object[]) (me.getValue()))[1]);
-            }
-            Log.i("FarRef SENDER: ", FarRefSender.toString());
-            Log.i("HM", "Key: " + me.getKey() + " | " + "Value: " + me.getValue());
-        }
-    }
-
-    @Override
-    public void getPlayerIdFromHMList(HashMap<String, Object> otherPlayersHM, ATFarReference FarRef) {
-        for (Map.Entry me : otherPlayersHM.entrySet()) {
-            if(((Object[]) (me.getValue()))[1] == FarRef) {
-                Log.i("HM Sovpadenie", "Key: " + me.getKey() + " | " + "Value: " + ((Object[]) (me.getValue()))[1]);
-            }
-            //Log.i("FarRef SENDER: ", FarRefSender.toString());
-            //Log.i("HM", "Key: " + me.getKey() + " | " + "Value: " + me.getValue());
-        }
     }
 
     /*

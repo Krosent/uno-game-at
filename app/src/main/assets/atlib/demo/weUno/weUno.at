@@ -31,7 +31,8 @@ object: {
   // Add new players to these lists (exclude player on this playing device).
   //HashMap of [userName,Far Reference]
   // UPD: HashMap of [userID,[Username, Far Reference]]
-  def otherPlayersHashMap := jlobby.java.util.HashMap.new();
+  //def otherPlayersHashMap := jlobby.java.util.HashMap.new();
+  def otherPlayersHashMap := jlobby.edu.vub.at.weuno.PlayersHashMap.new();
   //Array of far references, avoids iterating over hashmap
   def otherPlayers := [];
 
@@ -132,8 +133,9 @@ object: {
                     myID := UserID + 1;
                 };
 
+                def newPl := jlobby.edu.vub.at.weuno.Player.new(Username, FarRef);
                 // Add new user to hash map if no such user has been found
-                otherPlayersHashMap.put(UserID,[Username,FarRef]);
+                otherPlayersHashMap.put(UserID, newPl);
 
                 // Sync players counter
                 setPlayersCounter(PlayersCounter);
@@ -169,9 +171,31 @@ object: {
     def drawedCards(NumberOfCards, Deck, SenderFarRef) {
         // Find id of the players from hash map of players.
         //gui.getPlayerIdFromHMList(otherPlayersHashMap, SenderFarRef);
+        def opponentID := otherPlayersHashMap.getPlayerId(SenderFarRef);
 
-        // update corresponding position on the playing board.
-        gui.testFunction(otherPlayersHashMap, SenderFarRef, myReference);
+        // if
+
+        if:(opponentID == 0) then: {
+            if: (opponentID == myID-1) then: {
+                        gui.setLeftPlayerCardCount(NumberOfCards);
+                     } else: {
+                        if:(opponentID == myID+1) then: {
+                            gui.setRightPlayerCardCount(NumberOfCards);
+                        } else: {
+                            gui.setTopPlayerCardCount(NumberOfCards);
+                        };
+                     };
+        } else: {
+            if: (opponentID == myID+1) then: {
+                        gui.setLeftPlayerCardCount(NumberOfCards);
+                     } else: {
+                        if:(opponentID == myID-1) then: {
+                            gui.setRightPlayerCardCount(NumberOfCards);
+                        } else: {
+                            gui.setTopPlayerCardCount(NumberOfCards);
+                        };
+                     };
+        };
     }
 
   }; //end-remoteInterface

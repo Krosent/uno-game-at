@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import edu.vub.at.actors.ATFarReference;
+import edu.vub.at.weuno.Player;
+import edu.vub.at.weuno.PlayersHashMap;
 
 /**
  * Interface that the Java object implements with the methods that AmbientTalk objects call on it.
@@ -24,12 +26,16 @@ public interface JWeUno {
 
     void disableConnectionDialog();
 
+    void setTopPlayerCardCount(int n);
+
+    void setLeftPlayerCardCount(int n);
+
+    void setRightPlayerCardCount(int n);
+
+
     // start game
     void startGame();
 
-    void testFunction(HashMap<String, String> otherRefs, ATFarReference FarRefSender, ATFarReference FarRefReceiver);
-
-    void getPlayerIdFromHMList(HashMap<String, Object> otherPlayersHM, ATFarReference FarRef);
 
     // finish game
     // verify end game
