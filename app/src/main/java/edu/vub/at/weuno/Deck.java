@@ -31,8 +31,6 @@ public class Deck {
     }
 
     public String[][] getDeckSerialized() {
-        Log.i("NOT YET SERIALIZED: ", cards.toString());
-
         String[][] cardsArr = new String[this.cards.size()][2];
 
             int sizeOfQueue = cards.size();
@@ -41,9 +39,6 @@ public class Deck {
                     cardsArr[i][0] = ((Card) cardsAL.get(i)).getColor().name();
                     cardsArr[i][1] = ((Card) cardsAL.get(i)).getAction().name();
             }
-
-
-        Log.i("Already SERIALIZED: ", cardsArr.toString());
 
         return cardsArr;
     }

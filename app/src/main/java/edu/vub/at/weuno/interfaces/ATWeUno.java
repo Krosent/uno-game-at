@@ -15,5 +15,14 @@ public interface ATWeUno {
     void connectPlayer(String username);
 
     @Async
-    void initializeDeck(String[][] deck);
+    void initializeGame(String[][] deck);
+
+    @Async
+    void updateDeck(String[][] deck);
+
+    @Async
+    void drawCards(int numberOfCards);
+
+    @Async
+    void drawedCards(int numberOfCards, String[][] deck);
 }

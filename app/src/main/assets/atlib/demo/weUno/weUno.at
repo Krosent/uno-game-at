@@ -7,6 +7,7 @@ def log(text) {
 };
 
 def makeWeUno() {
+object: {
   // myID := /.at.support.util.randomNumberBetween(1, 125)
   // Init this variable when device's player clicked connect button.
   def myReference := self;
@@ -62,10 +63,24 @@ def makeWeUno() {
 
     def setDeck(newDeck) { myDeck := newDeck };
 
-    def initializeDeck(Deck) {
+    def initializeGame(Deck) {
         setDeck(Deck);
         // Sync deck on other devices.
-        otherPlayers.each: { |pl| pl <- updateDecks(Deck) };
+        otherPlayers.each: { |pl| pl <- initializeGame(Deck) };
+    };
+
+    def drawCards(Num) {
+        otherPlayers.each: { |pl| pl <- drawCards(Num) };
+    };
+
+    def updateDeck(Deck) {
+        setDeck(Deck);
+        otherPlayers.each: { |pl| pl <- updateDeck(Deck) };
+    };
+
+    def drawedCards(NumberOfCards, Deck) {
+        setDeck(Deck);
+        otherPlayers.each: { |pl| pl <- drawedCards(NumberOfCards, Deck, myReference) };
     };
 
     def getId() {
@@ -130,11 +145,34 @@ def makeWeUno() {
         log("Other Players: " + otherPlayersHashMap.toString());
     };
 
-    def updateDecks(deck) {
+    def initializeGame(deck) {
         log("IS IT HERE?");
         log("PRINT DECK IN AT: " + deck);
+        // Sync deck
         gui.updateDeck(deck);
+        gui.disableConnectionDialog();
+        gui.setGameState();
+
+        gui.setLeftPlayerCardCount(0);
+        gui.setTopPlayerCardCount(0);
+        gui.setRightPlayerCardCount(0);
     };
+
+    def drawCards(NumToDraw) {
+        gui.drawCards(NumToDraw);
+    };
+
+    def updateDeck(Deck) {
+        gui.updateDeck(Deck);
+    };
+
+    def drawedCards(NumberOfCards, Deck, SenderFarRef) {
+        // Find id of the players from hash map of players.
+        //gui.getPlayerIdFromHMList(otherPlayersHashMap, SenderFarRef);
+
+        // update corresponding position on the playing board.
+        gui.testFunction(otherPlayersHashMap, SenderFarRef, myReference);
+    }
 
   }; //end-remoteInterface
 
@@ -174,6 +212,8 @@ def makeWeUno() {
   // example symbiosis
   gui := Android.parent.registerAtApplication(localInterface);
   Android.parent.topUnoAnimation();
+};
+
 };
 
 network.online;

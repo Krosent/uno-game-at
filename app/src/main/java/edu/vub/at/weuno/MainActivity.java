@@ -29,9 +29,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Queue;
 
 import edu.vub.at.IAT;
+import edu.vub.at.actors.ATFarReference;
 import edu.vub.at.android.util.IATAndroid;
 import edu.vub.at.weuno.interfaces.ATWeUno;
 import edu.vub.at.weuno.interfaces.JWeUno;
@@ -75,11 +77,21 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     // Constants
     private static final int _MSG_NEW_PLAYER_ = 1;
     private static final int _MSG_INIT_DECK_ = 2;
+    private static final int _MSG_ASK_DRAW_CARDS_ = 3;
+    private static final int _MSG_OFF_CONNECTION_DIALOG = 4;
+    private static final int _MSG_UPD_DECK = 5;
+    private static final int _MSG_NOTIFY_ABOUT_DRAW_ = 6;
     // -------
 
     // Global Game Variables
     int playersCounter;
     boolean isGameStarted; // State which we need to check when we start the application.
+
+    // Direction of how game is played.
+    // By default is clockwise(forward). If reverse card has been applied - the direction changes to backwards.
+    public enum Direction { forward, backwards }
+    Direction moveDirection = Direction.forward;
+
     // TODO: State of current game (if disconected)
     // TODO: Players Information
 
@@ -142,21 +154,10 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
 
         startGameButton.setOnClickListener(v -> {
-            //isGameStarted = true;
-
-            dialog.hide();
-
             // Call init game function here.
             // This function initialize deck and notify other players.
             initGame();
-
-            // Deck and Hand Views enable visibility
-            drawingview.setEnabled(true);
-            drawingview.setVisibility(View.VISIBLE);
-
         });
-
-
 
 
         // Init Deck View
@@ -206,19 +207,51 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
     }
 
-    // TODO: call this when someone clicked start game.
     @Override
-    public void initGame() {
+    public void disableConnectionDialog() {
+        runOnUiThread(() -> {
+            dialog.hide();
+            drawingview.setEnabled(true);
+            drawingview.setVisibility(View.VISIBLE);
+        });
+    }
+
+    // TODO: call this when someone clicked start game.
+    private void initGame() {
         cardDeck = new Deck(); //TODO: do this when a new round has started
 
+        // Sync deck between other players
         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_INIT_DECK_,
                 cardDeck.getDeckSerialized()));
 
+        // Game is started from this point. (MSG_INIT_DECK does the same for other devices)
+        setGameState();
+
+        // Disable dialog window on the device (MSG_INIT_DECK does the same for other devices)
+        disableConnectionDialog();
+
+        // Draw cards
+        drawCards(7); // TODO: IMPLEMENT IT TOMORROW
+
+        setLeftPlayerCardCount(0);
+        setTopPlayerCardCount(0);
+        setRightPlayerCardCount(0);
+
+        // Ask others to draw cards
+       // getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_ASK_DRAW_CARDS_, 7));
+
+        // Draw one card again and play it.
+
+        // Send move to the next user.
+
+        //startGame();
+
+
+    }
+
+    @Override
+    public void setGameState() {
         isGameStarted = true;
-
-        startGame();
-
-
     }
 
     public void startUnoAnimation(Animation animation){
@@ -231,8 +264,11 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     //TODO: call this whenever the player has to draw cards
     public void drawCards(int n) {
         runOnUiThread(() -> {
-            for (int i = 0; i < n; i++)
-                adapter.addCard(cardDeck.drawCard());
+            for (int i = 0; i < n; i++) adapter.addCard(cardDeck.drawCard());
+            // notify other players about draw of cards.
+            // TODO: Notify other players about the draw. They have to update corresponding player on the deck.
+            // We pass there: number of draw cards, deck
+            getmHandler().sendMessage(Message.obtain(getmHandler(),_MSG_NOTIFY_ABOUT_DRAW_, n, 0,  cardDeck.getDeckSerialized()));
         });
     }
 
@@ -332,13 +368,13 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                 //drawingview.playCard(cardDeck.peekTopCard());
 
                 // Deck and Hand Views enable visibility
-                dialog.hide();
-                drawingview.setEnabled(true);
-                drawingview.setVisibility(View.VISIBLE);
+                //dialog.hide();
+                //drawingview.setEnabled(true);
+                //drawingview.setVisibility(View.VISIBLE);
                 drawingview.invalidate();
 
                 // START GAME
-                startGame();
+                //startGame();
             });
     }
 
@@ -349,12 +385,36 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         // Setup top card
         drawingview.playCard(cardDeck.peekTopCard());
 
-        drawingview.setLeftPlayerCount(7); //TODO: set initially to 0
-        drawingview.setTopPlayerCount(7);
-        drawingview.setRightPlayerCount(7);
+        drawingview.setLeftPlayerCount(0); //TODO: set initially to 0
+        drawingview.setTopPlayerCount(0);
+        drawingview.setRightPlayerCount(0);
 
         drawCards(7);
 
+    }
+
+
+    @Override
+    public void testFunction(HashMap<String, String> otherRefs, ATFarReference FarRefSender, ATFarReference FarRefReceiver) {
+
+        for (Map.Entry me : otherRefs.entrySet()) {
+            if(((Object[]) (me.getValue()))[1] == FarRefSender) {
+                Log.i("HM Sovpadenie", "Key: " + me.getKey() + " | " + "Value: " + ((Object[]) (me.getValue()))[1]);
+            }
+            Log.i("FarRef SENDER: ", FarRefSender.toString());
+            Log.i("HM", "Key: " + me.getKey() + " | " + "Value: " + me.getValue());
+        }
+    }
+
+    @Override
+    public void getPlayerIdFromHMList(HashMap<String, Object> otherPlayersHM, ATFarReference FarRef) {
+        for (Map.Entry me : otherPlayersHM.entrySet()) {
+            if(((Object[]) (me.getValue()))[1] == FarRef) {
+                Log.i("HM Sovpadenie", "Key: " + me.getKey() + " | " + "Value: " + ((Object[]) (me.getValue()))[1]);
+            }
+            //Log.i("FarRef SENDER: ", FarRefSender.toString());
+            //Log.i("HM", "Key: " + me.getKey() + " | " + "Value: " + me.getValue());
+        }
     }
 
     /*
@@ -449,8 +509,24 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                     }
                     case _MSG_INIT_DECK_: {
                         String[][] deck = (String[][]) msg.obj;
-                        atwu.initializeDeck(deck);
+                        atwu.initializeGame(deck);
                         break;
+                    }
+                    case _MSG_ASK_DRAW_CARDS_: {
+                        int number = (int) msg.obj;
+                        atwu.drawCards(number);
+                        break;
+                    }
+                    case _MSG_UPD_DECK: {
+                        String[][] deck = (String[][]) msg.obj;
+                        atwu.updateDeck(deck);
+                        break;
+                    }
+
+                    case _MSG_NOTIFY_ABOUT_DRAW_: {
+                        int numberOfDraw = msg.arg1;
+                        String[][] deck = (String[][]) msg.obj;
+                        atwu.drawedCards(numberOfDraw, deck);
                     }
 
                     /*
