@@ -1,10 +1,7 @@
 package edu.vub.at.weuno;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.helper.ItemTouchHelper;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -61,7 +58,7 @@ public class CardViewAdapter extends RecyclerView.Adapter<CardViewAdapter.ViewHo
         mCards.remove(position);
         notifyItemRemoved(position);
 
-        if (!mHandActionHandler.cardPlayed(targetcard)) {
+        if (!mHandActionHandler.isCardPlayed(targetcard)) {
             Card card = new Card(targetcard);
             mCards.add(position, card);
             notifyItemInserted(position);

@@ -26,16 +26,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.Map;
-import java.util.Queue;
 
 import edu.vub.at.IAT;
-import edu.vub.at.actors.ATFarReference;
 import edu.vub.at.android.util.IATAndroid;
-import edu.vub.at.objects.natives.NATTable;
 import edu.vub.at.weuno.interfaces.ATWeUno;
 import edu.vub.at.weuno.interfaces.JWeUno;
 
@@ -92,6 +86,9 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     // By default is clockwise(forward). If reverse card has been applied - the direction changes to backwards.
     public enum Direction { forward, backwards }
     Direction moveDirection = Direction.forward;
+
+    // flag which demonstrates ability to play a card for the current player.
+    public boolean movementEnabled = false;
 
     // TODO: State of current game (if disconected)
     // TODO: Players Information
@@ -209,7 +206,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     }
 
     @Override
-    public void disableConnectionDialog() {
+        public void disableConnectionDialog() {
         runOnUiThread(() -> {
             dialog.hide();
             drawingview.setEnabled(true);
@@ -231,23 +228,33 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         // Disable dialog window on the device (MSG_INIT_DECK does the same for other devices)
         disableConnectionDialog();
 
-        // Draw cards
-        drawCards(7); // TODO: IMPLEMENT IT TOMORROW
+        // Draw cards. After draw other users are notified.
+        drawCards(7);
+        // Ask others to draw cards
+        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_ASK_DRAW_CARDS_, 7));
+
+        // TODO: Draw one more card and instantly play it
+        // drawingview.playCard(cardDeck.peekTopCard());
+
+        //TODO: draw card >> play it >> notify about all changes >> give turn to the next player
+        //
+        // Play one card from top
+        // TODO: NEED TO FIX IT
+        isCardPlayed(cardDeck.peekTopCard());
+        // Draw it
+       //drawCards(1); // automoticaly notifies about the change in draw pile.
 
         setLeftPlayerCardCount(0);
         setTopPlayerCardCount(0);
         setRightPlayerCardCount(0);
 
-        // Ask others to draw cards
-       // getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_ASK_DRAW_CARDS_, 7));
+
 
         // Draw one card again and play it.
 
         // Send move to the next user.
 
         //startGame();
-
-
     }
 
     @Override
@@ -264,13 +271,24 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
     //TODO: call this whenever the player has to draw cards
     public void drawCards(int n) {
+        Log.i("Before Thread", "f " + cardDeck.cards.size());
         runOnUiThread(() -> {
-            for (int i = 0; i < n; i++) adapter.addCard(cardDeck.drawCard());
+            Log.i("Before Thread", "f " + cardDeck.cards.size());
+            for (int i = 0; i < n; i++) {
+                adapter.addCard(cardDeck.drawCard());
+            }
+            getmHandler().sendMessage(Message.obtain(getmHandler(),_MSG_NOTIFY_ABOUT_DRAW_, n, 0,  cardDeck.getDeckSerialized()));
+
+            Log.i("Number of cards", " " + cardDeck.cards.size());
+
             // notify other players about draw of cards.
             // TODO: Notify other players about the draw. They have to update corresponding player on the deck.
             // We pass there: number of draw cards, deck
-            getmHandler().sendMessage(Message.obtain(getmHandler(),_MSG_NOTIFY_ABOUT_DRAW_, n, 0,  cardDeck.getDeckSerialized()));
-        });
+
+
+       });
+
+
     }
 
     //TODO: call these methods from AmbientTalk indicating that another player has said Uno
@@ -312,17 +330,46 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     // this method is called when a user plays a card
     // you should check if this is valid, if not you shouldn't update the drawingview and return false
     @Override
-    public boolean cardPlayed(Card card) {
+    public boolean isCardPlayed(Card card) {
+
+        // TODO: Validate move:
+        if(drawingview.getTopCard() == drawingview.blankCard()) {
+            cardPlayedUI(card);
+        } else {
+
+        }
+
+        // TODO: If move is not validated -> return false!
+
+        // TODO: If Move is validated, evaluate below code:
 
         //TODO: don't do this if card is not valid, maybe show a toast indicating that the move is invalid and return false
         drawingview.playCard(card);
         drawingview.invalidate();
+
         btnUno.setVisibility(adapter.getItemCount() < 2 ? View.VISIBLE : View.INVISIBLE);
 
         return true;
     }
 
+    // Update top card on this device.
+    public void cardPlayedUI(Card card) {
+        // Update local UI
+        drawingview.playCard(card);
+        drawingview.invalidate();
+    }
 
+
+    public void makeMove(Card card) {
+        if(isCardPlayed(card)) {
+
+            // notify other players
+        } else {
+
+        }
+
+        // TODO: HERE!
+    }
 
     // Manage AmbientTalk Startup
 
@@ -361,17 +408,17 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
             LinkedList<Card> deck_ = new LinkedList<>();
 
             for(int i=0; i<deck.length; i++) {
-                for(int z=0; z<2; z++) {
                     deck_.add(new Card(Card.Color.valueOf(deck[i][0]),
                             Card.Action.valueOf(deck[i][1])));
-                }
             }
 
             runOnUiThread(() -> {
+                //cardDeck.setDeck(deck_);
                 cardDeck = new Deck(deck_);
 
                 // Setup top card
-                //drawingview.playCard(cardDeck.peekTopCard());
+                ////drawingview.playCard(cardDeck.peekTopCard());
+
 
                 // Deck and Hand Views enable visibility
                 //dialog.hide();
@@ -386,16 +433,16 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
     @Override
     public void startGame() {
-        isGameStarted = true;
+       // isGameStarted = true;
 
         // Setup top card
-        drawingview.playCard(cardDeck.peekTopCard());
+        //drawingview.playCard(cardDeck.peekTopCard());
 
-        drawingview.setLeftPlayerCount(0); //TODO: set initially to 0
-        drawingview.setTopPlayerCount(0);
-        drawingview.setRightPlayerCount(0);
+        //drawingview.setLeftPlayerCount(0); //TODO: set initially to 0
+        //drawingview.setTopPlayerCount(0);
+        //drawingview.setRightPlayerCount(0);
 
-        drawCards(7);
+        // drawCards(7);
 
     }
 
@@ -502,13 +549,23 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                     case _MSG_UPD_DECK: {
                         String[][] deck = (String[][]) msg.obj;
                         atwu.updateDeck(deck);
+                        Log.i("UPD DECK", "fe: " + deck.length);
                         break;
                     }
 
                     case _MSG_NOTIFY_ABOUT_DRAW_: {
+//                        try {
+//                            //set time in mili
+//                            Thread.sleep(100);
+//
+//                        }catch (Exception e){
+//                            e.printStackTrace();
+//                        }
+
                         int numberOfDraw = msg.arg1;
                         String[][] deck = (String[][]) msg.obj;
                         atwu.drawedCards(numberOfDraw, deck);
+                        Log.i("Notify About Draw:", "notif: " + deck.length);
                     }
 
                     /*

@@ -22,24 +22,22 @@ public class Deck {
         cards = c;
     }
 
-    public Deck(LinkedList<Card> cards) {
-        this.cards = cards;
+    public Deck(LinkedList<Card> newCards) {
+        this.cards = newCards;
     }
 
     public void setDeck(LinkedList<Card> UpdatedCards) {
-        cards = UpdatedCards;
+        this.cards = UpdatedCards;
     }
 
     public String[][] getDeckSerialized() {
         String[][] cardsArr = new String[this.cards.size()][2];
-
-            int sizeOfQueue = cards.size();
+        int sizeOfQueue = cards.size();
+        ArrayList cardsAL = new ArrayList(cards);
             for(int i=0; i<sizeOfQueue; i++) {
-                ArrayList cardsAL = new ArrayList(cards);
                     cardsArr[i][0] = ((Card) cardsAL.get(i)).getColor().name();
                     cardsArr[i][1] = ((Card) cardsAL.get(i)).getAction().name();
             }
-
         return cardsArr;
     }
 

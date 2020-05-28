@@ -42,6 +42,18 @@ public class PlayersHashMap<K,V> {
         return id;
     }
 
+    public ATFarReference getPlayerFarRef(int id) {
+        ATFarReference ref;
+        for (HashMap.Entry<Integer, Player> me : this.hashMap.entrySet()) {
+            if(me.getKey() == id) {
+                ref = me.getValue().farReference;
+                return ref;
+            }
+        }
+
+        return null;
+    }
+
     @Override
     public String toString() {
         return "PlayersHashMap{" +

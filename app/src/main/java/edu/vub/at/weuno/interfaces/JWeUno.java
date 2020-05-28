@@ -32,7 +32,6 @@ public interface JWeUno {
 
     void setRightPlayerCardCount(int n);
 
-
     // start game
     void startGame();
 

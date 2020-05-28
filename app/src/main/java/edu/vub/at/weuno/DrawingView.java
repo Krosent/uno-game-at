@@ -46,6 +46,14 @@ public class DrawingView extends View {
         played ++;
     }
 
+    public Card getTopCard() {
+        return topCard;
+    }
+
+    public Card blankCard() {
+        return BLANK_CARD;
+    }
+
     public void setTopPlayerCount(int topPlayerCount) {
         this.topPlayerCount = topPlayerCount;
     }

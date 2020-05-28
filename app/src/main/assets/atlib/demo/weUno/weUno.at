@@ -10,7 +10,7 @@ def makeWeUno() {
 object: {
   // myID := /.at.support.util.randomNumberBetween(1, 125)
   // Init this variable when device's player clicked connect button.
-  def myReference := self;
+  def myReference;
 
   //def myID;
   def myName; // Let us suppose that each name is unique. (impossible to have two players with the same name).
@@ -40,11 +40,16 @@ object: {
 
   def myDeck; // created deck variable because impossible to pass java objects in methods in AT. :(
 
+  // connection between other players
+  def pred;
+  def succ;
+
   deftype UnoGame;
 
   //interface for android gui.
   def localInterface := object: {
     def connectPlayer(username) {
+        myReference := remoteInterface;
         myName := username;
 
         isConnected := true;
@@ -71,7 +76,10 @@ object: {
     };
 
     def drawCards(Num) {
-        otherPlayers.each: { |pl| pl <- drawCards(Num) };
+        //def nextPlayer := myID + 1
+        //otherPlayers.each: { |pl| pl <- drawCards(Num) };
+        // TODO---
+        succ[2] <- drawCards(Num);
     };
 
     def updateDeck(Deck) {
@@ -80,6 +88,7 @@ object: {
     };
 
     def drawedCards(NumberOfCards, Deck) {
+        myReference := remoteInterface;
         setDeck(Deck);
         otherPlayers.each: { |pl| pl <- drawedCards(NumberOfCards, Deck, myReference) };
     };
@@ -98,6 +107,40 @@ object: {
 
   //interface for remote painters.
   def remoteInterface := object: {
+
+    succ := [myID, self];
+    pred := [myID, self];
+
+    def inRangeWithSucc(PeerID) {
+       if:(PeerID == myID+1) then: {
+        log("inRANGESUCC PeerID: " + PeerID + " : " + "MYID: " + myID);
+        true ;
+       } else: { false };
+    };
+
+    def inRangeWithPred(PeerID) {
+        if:(PeerID == myID-1) then: {
+            log("inRANGEPRED PeerID: " + PeerID + " : " + "MYID: " + myID);
+            true;
+        } else: { false };
+    };
+
+    def newSucc(PeerID, PeerRef) {
+        if: (inRangeWithSucc(PeerID)) then: {
+        succ := [PeerID, PeerRef];
+        log("new suc: " + succ);
+        };
+
+      };
+
+    def join(PeerID, PeerRef) {
+      if: (inRangeWithPred(PeerID)) then: {
+      pred[2] := PeerRef;
+      pred[1] := PeerID;
+      PeerRef <- newSucc(myID, remoteInterface);
+      };
+    };
+
     def getTestVariable := "Testik"; // Удалить позже
 
     //def sendReferenceToGUI() {}
@@ -125,17 +168,26 @@ object: {
     };
 
     def newPlayer(UserID, Username, FarRef, PlayersCounter) {
-        log("Check");
         if: ((otherPlayersHashMap.containsKey(UserID)).not()) then: {
+
+                log("New Played  ID: " + UserID);
 
                 // Update this device id to the new one. !!! Only if you are not connected !!!
                 if: ((isConnected).not()) then: {
                     myID := UserID + 1;
                 };
 
+                join(UserID, FarRef);
+
                 def newPl := jlobby.edu.vub.at.weuno.Player.new(Username, FarRef);
+
+                // UPD
+
+
                 // Add new user to hash map if no such user has been found
                 otherPlayersHashMap.put(UserID, newPl);
+
+
 
                 // Sync players counter
                 setPlayersCounter(PlayersCounter);
@@ -143,15 +195,12 @@ object: {
                 // Update UI
                 gui.updateConnectedGamersCounter(playersCounter);
         };
-        log("My ID: " + myID);
-        log("Other Players: " + otherPlayersHashMap.toString());
     };
 
-    def initializeGame(deck) {
-        log("IS IT HERE?");
-        log("PRINT DECK IN AT: " + deck);
+    def initializeGame(Deck) {
+        myDeck := Deck;
         // Sync deck
-        gui.updateDeck(deck);
+        gui.updateDeck(Deck);
         gui.disableConnectionDialog();
         gui.setGameState();
 
@@ -161,7 +210,12 @@ object: {
     };
 
     def drawCards(NumToDraw) {
+        //log("Myself: " + self);
+        //log("SUCC: " + succ);
+        //log("Other Players: " + otherPlayersHashMap.toString());
         gui.drawCards(NumToDraw);
+        //succ[2] <- drawCards(NumToDraw);
+       // if: (succ[2] == self).not then: { succ[2] <- drawCards(NumToDraw) } else: { log("Vsyo") };
     };
 
     def updateDeck(Deck) {
@@ -173,14 +227,19 @@ object: {
         //gui.getPlayerIdFromHMList(otherPlayersHashMap, SenderFarRef);
         def opponentID := otherPlayersHashMap.getPlayerId(SenderFarRef);
 
-        // if
+        myDeck := Deck;
+
+        // TODO
+
+
+        gui.updateDeck(Deck);
 
         if:(opponentID == 0) then: {
             if: (opponentID == myID-1) then: {
-                        gui.setLeftPlayerCardCount(NumberOfCards);
+                        gui.setRightPlayerCardCount(NumberOfCards);
                      } else: {
                         if:(opponentID == myID+1) then: {
-                            gui.setRightPlayerCardCount(NumberOfCards);
+                            gui.setLeftPlayerCardCount(NumberOfCards);
                         } else: {
                             gui.setTopPlayerCardCount(NumberOfCards);
                         };
