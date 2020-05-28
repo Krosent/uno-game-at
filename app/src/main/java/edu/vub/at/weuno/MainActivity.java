@@ -1,5 +1,6 @@
 package edu.vub.at.weuno;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
@@ -76,6 +77,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     private static final int _MSG_OFF_CONNECTION_DIALOG = 4;
     private static final int _MSG_UPD_DECK = 5;
     private static final int _MSG_NOTIFY_ABOUT_DRAW_ = 6;
+    private static final int _MSG_INIT_RELAT_ = 7;
     // -------
 
     // Global Game Variables
@@ -222,6 +224,9 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_INIT_DECK_,
                 cardDeck.getDeckSerialized()));
 
+        // Init succ and pred
+        initRelationship();
+
         // Game is started from this point. (MSG_INIT_DECK does the same for other devices)
         setGameState();
 
@@ -257,6 +262,10 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         //startGame();
     }
 
+    private void initRelationship() {
+        getmHandler().sendMessage(Message.obtain(getmHandler(),_MSG_INIT_RELAT_));
+    }
+
     @Override
     public void setGameState() {
         isGameStarted = true;
@@ -271,21 +280,17 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
     //TODO: call this whenever the player has to draw cards
     public void drawCards(int n) {
-        Log.i("Before Thread", "f " + cardDeck.cards.size());
         runOnUiThread(() -> {
-            Log.i("Before Thread", "f " + cardDeck.cards.size());
             for (int i = 0; i < n; i++) {
                 adapter.addCard(cardDeck.drawCard());
             }
+            Log.i("Num of cards: ", " " + cardDeck.cards.size());
+            drawingview.invalidate();
             getmHandler().sendMessage(Message.obtain(getmHandler(),_MSG_NOTIFY_ABOUT_DRAW_, n, 0,  cardDeck.getDeckSerialized()));
-
-            Log.i("Number of cards", " " + cardDeck.cards.size());
 
             // notify other players about draw of cards.
             // TODO: Notify other players about the draw. They have to update corresponding player on the deck.
             // We pass there: number of draw cards, deck
-
-
        });
 
 
@@ -523,6 +528,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     // Call the AmbientTalk methods in a separate thread to avoid blocking the UI.
     private class LooperThread extends Thread {
 
+        @SuppressLint("HandlerLeak")
         public Handler mHandler = new Handler() {
 
             public void handleMessage(Message msg) {
@@ -554,18 +560,16 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                     }
 
                     case _MSG_NOTIFY_ABOUT_DRAW_: {
-//                        try {
-//                            //set time in mili
-//                            Thread.sleep(100);
-//
-//                        }catch (Exception e){
-//                            e.printStackTrace();
-//                        }
-
                         int numberOfDraw = msg.arg1;
                         String[][] deck = (String[][]) msg.obj;
                         atwu.drawedCards(numberOfDraw, deck);
                         Log.i("Notify About Draw:", "notif: " + deck.length);
+                        break;
+                    }
+
+                    case _MSG_INIT_RELAT_: {
+                        atwu.initializeRelations();
+                        break;
                     }
 
                     /*

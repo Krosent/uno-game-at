@@ -18,6 +18,9 @@ public interface ATWeUno {
     void initializeGame(String[][] deck);
 
     @Async
+    void initializeRelations();
+
+    @Async
     void updateDeck(String[][] deck);
 
     @Async
