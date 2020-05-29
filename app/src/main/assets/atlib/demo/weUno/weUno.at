@@ -81,15 +81,26 @@ object: {
     def initializeRelations() {
         // TODO: update pred on other devices
         // join(UserID, FarRef);
-        otherPlayers.each: { |pl| pl <- join(myID, remoteInterface) };
+        otherPlayers.each: { |pl| pl <- join(myID, remoteInterface); };
     };
 
     // This function is used to ask other players to draw cards instantly.
     def drawCards(Num) {
+        //gui.drawCards(Num);
         //otherPlayers.each: { |pl| pl <- drawCards(Num) };
         // TODO---
         // We start to ask a draw from succ player (the next player)
-        succ[2] <- drawCards(Num);
+        log("Me in drawCards: " + myReference);
+        log("My remote ref in drawCards: " + remoteInterface);
+        log("suc in drawCards: " + succ[2] + " id: "  + succ[1]);
+        log("prev in drawCards: " + pred[2] + " id: "  + pred[1]);
+       // succ[2] <- drawCards(Num);
+        ///when: succ[2] <- drawCards(Num)@FutureMessage becomes: { |ref|
+        // system.println("The ref " + ref);
+        // ref <- drawCards(Num);
+        //};
+
+        //succ[2] <- drawCards(Num);
     };
 
     def updateDeck(Deck) {
@@ -130,9 +141,12 @@ object: {
     };
 
     def newSucc(PeerID, PeerRef) {
-        if:(isSuccSet) then: {} else: {
+        if:(isSuccSet == true) then: {} else: {
             isSuccSet := true;
+
             if: (inRangeWithSucc(PeerID)) then: {
+                log("new succ func: myID" + myID);
+                log("new succ func: peer id " + PeerID);
                 succ := [PeerID, PeerRef];
             };
         };
@@ -153,8 +167,9 @@ object: {
               pred[1] := PeerID;
 
               PeerRef <- newSucc(myID, remoteInterface);
-              };
-               otherPlayers.each: { |pl| pl <- updateNewPredAndSucc(myID, remoteInterface); }
+         };
+
+         otherPlayers.each: { |pl| pl <- updateNewPredAndSucc(myID, remoteInterface); }
     };
 
     def updateNewPredAndSucc(ID, Ref) {
@@ -222,17 +237,13 @@ object: {
     };
 
     def drawCards(NumToDraw) {
-        log("Myself: " + self);
-        log("PRED: " + pred);
-        log("SUCC: " + succ);
-        //log("Other Players: " + otherPlayersHashMap.toString());
-
         gui.drawCards(NumToDraw);
+        succ[2];
 
         //succ[2] <- drawCards(NumToDraw);
 
         // If you have no successor then stop
-        if: ((succ[2] == self)) then: { log("End of point. No succ: " + succ[2])  } else: { succ[2] <- drawCards(NumToDraw) };
+        //if: ((succ[2] == self)) then: { log("End of point. No succ: " + succ[2])  } else: { succ[2] <- drawCards(NumToDraw) };
         //if: ((succ[2] == self).not()) then: { succ[2] <- drawCards(NumToDraw); log("I am: " + succ[2]) } else: { log("Vsyo: " + succ[2]) };
     };
 
@@ -248,7 +259,6 @@ object: {
         myDeck := Deck;
 
         // TODO
-
 
         gui.updateDeck(Deck);
 
@@ -289,9 +299,6 @@ object: {
      		    if: (!otherPlayers.contains(ref)) then: {
                     otherPlayers := otherPlayers + [ref];
                 };
-     			//when: ref<-receiveTestMessageFromAnother()@FutureMessage becomes: { |varTest|
-     			//	log("User Variable Test:" + varTest);
-     			//	};
 
                 whenever: ref disconnected: {
                     //jPortalPong.died(id);

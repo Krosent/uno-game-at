@@ -224,7 +224,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_INIT_DECK_,
                 cardDeck.getDeckSerialized()));
 
-        // Init succ and pred
+        // Init succ and pred for each player
         initRelationship();
 
         // Game is started from this point. (MSG_INIT_DECK does the same for other devices)
@@ -593,5 +593,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
             Looper.prepare();
             Looper.loop();
         }
+
+
     }
 }
