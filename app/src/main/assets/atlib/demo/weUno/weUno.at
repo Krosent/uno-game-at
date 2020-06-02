@@ -41,6 +41,8 @@ object: {
   def myDeck; // created deck variable because impossible to pass java objects in methods in AT. :(
 
   // connection between other players
+  def head;
+  def last;
   def pred;
   def succ;
 
@@ -84,21 +86,18 @@ object: {
         otherPlayers.each: { |pl| pl <- join(myID, remoteInterface); };
     };
 
+    def askDrawCards(Num, WhoToDrawID) {
+        def usr := otherPlayersHashMap.getPlayerFarRef(WhoToDrawID);
+        usr <- drawCards(Num)
+    };
+
     // This function is used to ask other players to draw cards instantly.
     def drawCards(Num) {
         //gui.drawCards(Num);
         //otherPlayers.each: { |pl| pl <- drawCards(Num) };
         // TODO---
         // We start to ask a draw from succ player (the next player)
-        log("Me in drawCards: " + myReference);
-        log("My remote ref in drawCards: " + remoteInterface);
-        log("suc in drawCards: " + succ[2] + " id: "  + succ[1]);
-        log("prev in drawCards: " + pred[2] + " id: "  + pred[1]);
-       // succ[2] <- drawCards(Num);
-        ///when: succ[2] <- drawCards(Num)@FutureMessage becomes: { |ref|
-        // system.println("The ref " + ref);
-        // ref <- drawCards(Num);
-        //};
+
 
         //succ[2] <- drawCards(Num);
     };
@@ -133,7 +132,9 @@ object: {
     pred := [myID, self];
 
     def inRangeWithSucc(PeerID) {
-       if:(PeerID == myID + 1) then: { true } else: { false };
+       if:(PeerID == myID + 1) then: { true } else: {
+            if: (PeerID == 0) then: { true } else: { false };
+       };
     };
 
     def inRangeWithPred(PeerID) {
@@ -145,23 +146,39 @@ object: {
             isSuccSet := true;
 
             if: (inRangeWithSucc(PeerID)) then: {
-                log("new succ func: myID" + myID);
-                log("new succ func: peer id " + PeerID);
-                succ := [PeerID, PeerRef];
+                if: (otherPlayersHashMap.size() == myID) then: {
+                    log("end of the list");
+                    last := [myID, myReference];
+                    succ := head;
+                } else: {
+                    log("new succ func: myID " + myID);
+                    log("new succ func: peer id " + PeerID);
+                    succ := [PeerID, PeerRef];
+                };
             };
         };
     };
 
     def newPred(PeerID, PeerRef) {
-            if:(isPredSet) then: {} else: {
+            if:(isPredSet == true) then: {} else: {
                 isPredSet := true;
                if: (inRangeWithPred(PeerID)) then: {
+                   if: (PeerID == head[1]) then: {
+                        log("new pred func in if: myID " + myID);
+                        log("new pred func in if: peer id " + PeerID);
+                        pred := last;
+                   } else: {
+                        log("new pred func: myID " + myID);
+                        log("new pred func: peer id " + PeerID);
                         pred := [PeerID, PeerRef];
+                   };
+
                };
             };
     };
 
     def join(PeerID, PeerRef) {
+         head := [PeerID, PeerRef];
          if: (inRangeWithPred(PeerID)) then: {
               pred[2] := PeerRef;
               pred[1] := PeerID;
@@ -173,6 +190,9 @@ object: {
     };
 
     def updateNewPredAndSucc(ID, Ref) {
+        log("in upd");
+        log("in upd hm size: " + otherPlayersHashMap.size());
+        log("in upd myid: " + myID);
         newSucc(ID, Ref);
         newPred(ID, Ref);
     };

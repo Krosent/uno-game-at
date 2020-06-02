@@ -24,7 +24,7 @@ public interface ATWeUno {
     void updateDeck(String[][] deck);
 
     @Async
-    void drawCards(int numberOfCards);
+    void askDrawCards(int numberOfCards, int userID);
 
     @Async
     void drawedCards(int numberOfCards, String[][] deck);

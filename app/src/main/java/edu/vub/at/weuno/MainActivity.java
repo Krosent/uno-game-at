@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -91,6 +92,9 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
     // flag which demonstrates ability to play a card for the current player.
     public boolean movementEnabled = false;
+
+    // Timer
+    CountDownTimer MyCountDownTimer;
 
     // TODO: State of current game (if disconected)
     // TODO: Players Information
@@ -227,16 +231,14 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         // Init succ and pred for each player
         initRelationship();
 
+        startTimer();
+
         // Game is started from this point. (MSG_INIT_DECK does the same for other devices)
         setGameState();
 
         // Disable dialog window on the device (MSG_INIT_DECK does the same for other devices)
         disableConnectionDialog();
 
-        // Draw cards. After draw other users are notified.
-        drawCards(7);
-        // Ask others to draw cards
-        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_ASK_DRAW_CARDS_, 7));
 
         // TODO: Draw one more card and instantly play it
         // drawingview.playCard(cardDeck.peekTopCard());
@@ -245,7 +247,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         //
         // Play one card from top
         // TODO: NEED TO FIX IT
-        isCardPlayed(cardDeck.peekTopCard());
+       // isCardPlayed(cardDeck.peekTopCard());
         // Draw it
        //drawCards(1); // automoticaly notifies about the change in draw pile.
 
@@ -260,6 +262,44 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         // Send move to the next user.
 
         //startGame();
+    }
+
+    private void startTimer() {
+        MyCountDownTimer = new CountDownTimer(4000, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+
+                //TimeLeftInMillis = millisUntilFinished;
+                //updateCountDownText(); //  Updating CountDown_Tv
+
+
+                /*for incrementing progressbar every second calculating progress for every second*/
+               // progress = (int) (START_TIME_IN_MILLIS / (1 * 100));
+                //incrementing progress on every tick
+               // ProgressBarStatus +=progress;
+                //MyProgressBar.setProgress(ProgressBarStatus);
+
+            }
+
+            @Override
+            public void onFinish() {
+                // Draw cards. After draw other users are notified.
+                drawCards(7);
+                // Ask others to draw cards
+
+                getmHandler().sendMessageDelayed(Message.obtain(getmHandler(), _MSG_ASK_DRAW_CARDS_, 0, 0, 7), 1000);
+                getmHandler().sendMessageDelayed(Message.obtain(getmHandler(), _MSG_ASK_DRAW_CARDS_, 1, 0, 7), 1200);
+                getmHandler().sendMessageDelayed(Message.obtain(getmHandler(), _MSG_ASK_DRAW_CARDS_, 2, 0, 7), 1400);
+                getmHandler().sendMessageDelayed(Message.obtain(getmHandler(), _MSG_ASK_DRAW_CARDS_, 3, 0, 7), 1600);
+
+            }
+        }.start();
+
+       // TimerRunning = true;
+       // StartPauseButton.setText("Pause");
+       // ResetButton.setVisibility(View.INVISIBLE);
+
+
     }
 
     private void initRelationship() {
@@ -377,8 +417,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     }
 
     // Manage AmbientTalk Startup
-
-
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         Log.v("WeUno", "Return of Asset Installer activity");
         switch (requestCode) {
@@ -449,6 +487,11 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
         // drawCards(7);
 
+    }
+
+    // Ask another player to draw n cards. We ask him explicitly but his or her id.
+    public void askDrawsCard(int number, int id) {
+        // TODO:
     }
 
     /*
@@ -549,7 +592,8 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                     }
                     case _MSG_ASK_DRAW_CARDS_: {
                         int number = (int) msg.obj;
-                        atwu.drawCards(number);
+                        int playerID = (int) msg.arg1;
+                        atwu.askDrawCards(number, playerID);
                         break;
                     }
                     case _MSG_UPD_DECK: {
