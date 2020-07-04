@@ -21,9 +21,6 @@ public interface ATWeUno {
     void initializeRelations();
 
     @Async
-    void updateDeck(String[][] deck);
-
-    @Async
     void askDrawCards(int numberOfCards, int userID);
 
     @Async

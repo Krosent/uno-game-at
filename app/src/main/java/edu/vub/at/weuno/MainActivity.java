@@ -231,7 +231,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         // Init succ and pred for each player
         initRelationship();
 
-        startTimer();
+
 
         // Game is started from this point. (MSG_INIT_DECK does the same for other devices)
         setGameState();
@@ -264,43 +264,13 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         //startGame();
     }
 
-    private void startTimer() {
-        MyCountDownTimer = new CountDownTimer(4000, 1000) {
-            @Override
-            public void onTick(long millisUntilFinished) {
-
-                //TimeLeftInMillis = millisUntilFinished;
-                //updateCountDownText(); //  Updating CountDown_Tv
-
-
-                /*for incrementing progressbar every second calculating progress for every second*/
-               // progress = (int) (START_TIME_IN_MILLIS / (1 * 100));
-                //incrementing progress on every tick
-               // ProgressBarStatus +=progress;
-                //MyProgressBar.setProgress(ProgressBarStatus);
-
-            }
-
-            @Override
-            public void onFinish() {
-                // Draw cards. After draw other users are notified.
-                drawCards(7);
-                // Ask others to draw cards
-
-                getmHandler().sendMessageDelayed(Message.obtain(getmHandler(), _MSG_ASK_DRAW_CARDS_, 0, 0, 7), 1000);
-                getmHandler().sendMessageDelayed(Message.obtain(getmHandler(), _MSG_ASK_DRAW_CARDS_, 1, 0, 7), 1200);
-                getmHandler().sendMessageDelayed(Message.obtain(getmHandler(), _MSG_ASK_DRAW_CARDS_, 2, 0, 7), 1400);
-                getmHandler().sendMessageDelayed(Message.obtain(getmHandler(), _MSG_ASK_DRAW_CARDS_, 3, 0, 7), 1600);
-
-            }
-        }.start();
 
        // TimerRunning = true;
        // StartPauseButton.setText("Pause");
        // ResetButton.setVisibility(View.INVISIBLE);
 
 
-    }
+
 
     private void initRelationship() {
         getmHandler().sendMessage(Message.obtain(getmHandler(),_MSG_INIT_RELAT_));
@@ -447,7 +417,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     }
 
     @Override
-    public void updateDeck(String[][] deck) {
+    public void setDeck(String[][] deck) {
             LinkedList<Card> deck_ = new LinkedList<>();
 
             for(int i=0; i<deck.length; i++) {
@@ -468,7 +438,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                 //drawingview.setEnabled(true);
                 //drawingview.setVisibility(View.VISIBLE);
                 drawingview.invalidate();
-
                 // START GAME
                 //startGame();
             });
@@ -598,7 +567,8 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                     }
                     case _MSG_UPD_DECK: {
                         String[][] deck = (String[][]) msg.obj;
-                        atwu.updateDeck(deck);
+                        // TODO:
+                        //atwu.updateDeck(deck);
                         Log.i("UPD DECK", "fe: " + deck.length);
                         break;
                     }

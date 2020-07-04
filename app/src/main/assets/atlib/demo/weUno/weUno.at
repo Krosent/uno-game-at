@@ -1,13 +1,16 @@
 import /.at.lang.futures;
 enableFutures(false);
+import /.at.lang.totam;
 
 
 def log(text) {
   Android.Log.i("weUno", text);
 };
 
-def makeWeUno() {
+def makeWeUno(myID := /.at.support.util.randomNumberBetween(0, 125)) {
 object: {
+  def ts; // tuple space
+
   // myID := /.at.support.util.randomNumberBetween(1, 125)
   // Init this variable when device's player clicked connect button.
   def myReference;
@@ -18,10 +21,11 @@ object: {
   // By default all devices have id == 0.
   //We change our ID as soon as we get new device discovered.
   //If we discover new device -> we change our ID, unless we are already connected to the game.
-  def myID := 0;
+  //def myID;
 
   // isConnected variable is our condition checker.
   // !! We will not change myID if isConnected is true.
+  // --- TODO ---
   def isConnected := false;
 
   // Players who connected to the session. By default is zero.
@@ -29,55 +33,64 @@ object: {
   def playersCounter := 0;
 
   // Add new players to these lists (exclude player on this playing device).
-  //HashMap of [userName,Far Reference]
+  //HashMap of [id,Far Reference]
   // UPD: HashMap of [userID,[Username, Far Reference]]
-  //def otherPlayersHashMap := jlobby.java.util.HashMap.new();
-  def otherPlayersHashMap := jlobby.edu.vub.at.weuno.PlayersHashMap.new();
+  def otherPlayersHashMap := jlobby.edu.vub.at.weuno.OrderedHashMap.new();
+
   //Array of far references, avoids iterating over hashmap
   def otherPlayers := [];
 
   def gui; // reference to Android UI object.
 
-  def myDeck; // created deck variable because impossible to pass java objects in methods in AT. :(
+  deftype UnoPlayer;
 
-  // connection between other players
-  def head;
-  def last;
-  def pred;
-  def succ;
-
-  def isPredSet := false;
-  def isSuccSet := false;
-
-  deftype UnoGame;
+  def init(newId){
+    myID := newId;
+  };
 
   //interface for android gui.
   def localInterface := object: {
-    def connectPlayer(username) {
-        myReference := remoteInterface;
-        myName := username;
+    def connectPlayer(username) { // This method triggers on button click from Android.
+        def playerTuple := tuple: ["UnoPlayer", myID, var: `player, var: `isConnected];
 
-        isConnected := true;
-
-        // Update players counter for this device
-        remoteInterface.setPlayersCounter(playersCounter + 1);
-        gui.updateConnectedGamersCounter(playersCounter);
-
-        otherPlayers.each: { |pl|
-            // Notify other players about the new player
-            pl <- newPlayer(getId(), username, myReference, getPlayersCounter());
+        ts.when: playerTuple in:{
+          //system.println(“ “ + from + “ says: “ + content);
+          isConnected := true;
+          def connectedPlayerTuple := tuple: ["UnoPlayer", myID, player, isConnected];
+          ts.inject: connectedPlayerTuple;
         };
-        /////
     };
 
-    def getDeck() { myDeck };
+    def setID(id) { myID := id };
 
-    def setDeck(newDeck) { myDeck := newDeck };
+    def setName(newName) { myName := newName };
+
+    //def setDeck(newDeck) { myDeck := newDeck };
+
+    def setPlayersCounter(counter) {
+        playersCounter := counter;
+
+        // if players counter < 2 -> disable play button !!! Disabled by default
+
+        if: (playersCounter >= 2) then: {
+            // if players counter > 2 -> enable game button
+            gui.enableGameButton();
+        } else: {
+            if: (playersCounter == 4) then: {
+                // if players counter == 4 -> disable connect button
+                gui.disableConnectButton();
+            }
+        };
+    };
 
     def initializeGame(Deck) {
-        setDeck(Deck);
+        // Deck tuple in format ["UnoDeck", var: `deck]
+        def deckTuple := tuple: ["UnoDeck", Deck];
+        ts.inject: deckTuple;
+
+        //  setDeck(Deck);
         // Sync deck on other devices.
-        otherPlayers.each: { |pl| pl <- initializeGame(Deck) };
+        //  otherPlayers.each: { |pl| pl <- initializeGame(Deck) };
     };
 
     def initializeRelations() {
@@ -102,10 +115,6 @@ object: {
         //succ[2] <- drawCards(Num);
     };
 
-    def updateDeck(Deck) {
-        setDeck(Deck);
-        otherPlayers.each: { |pl| pl <- updateDeck(Deck) };
-    };
 
     def drawedCards(NumberOfCards, Deck) {
         myReference := remoteInterface;
@@ -128,121 +137,19 @@ object: {
   //interface for remote painters.
   def remoteInterface := object: {
 
-    succ := [myID, self];
-    pred := [myID, self];
-
-    def inRangeWithSucc(PeerID) {
-       if:(PeerID == myID + 1) then: { true } else: {
-            if: (PeerID == 0) then: { true } else: { false };
-       };
-    };
-
-    def inRangeWithPred(PeerID) {
-        if:(PeerID == myID - 1) then: { true } else: { false };
-    };
-
-    def newSucc(PeerID, PeerRef) {
-        if:(isSuccSet == true) then: {} else: {
-            isSuccSet := true;
-
-            if: (inRangeWithSucc(PeerID)) then: {
-                if: (otherPlayersHashMap.size() == myID) then: {
-                    log("end of the list");
-                    last := [myID, myReference];
-                    succ := head;
-                } else: {
-                    log("new succ func: myID " + myID);
-                    log("new succ func: peer id " + PeerID);
-                    succ := [PeerID, PeerRef];
-                };
-            };
-        };
-    };
-
-    def newPred(PeerID, PeerRef) {
-            if:(isPredSet == true) then: {} else: {
-                isPredSet := true;
-               if: (inRangeWithPred(PeerID)) then: {
-                   if: (PeerID == head[1]) then: {
-                        log("new pred func in if: myID " + myID);
-                        log("new pred func in if: peer id " + PeerID);
-                        pred := last;
-                   } else: {
-                        log("new pred func: myID " + myID);
-                        log("new pred func: peer id " + PeerID);
-                        pred := [PeerID, PeerRef];
-                   };
-
-               };
-            };
-    };
-
-    def join(PeerID, PeerRef) {
-         head := [PeerID, PeerRef];
-         if: (inRangeWithPred(PeerID)) then: {
-              pred[2] := PeerRef;
-              pred[1] := PeerID;
-
-              PeerRef <- newSucc(myID, remoteInterface);
-         };
-
-         otherPlayers.each: { |pl| pl <- updateNewPredAndSucc(myID, remoteInterface); }
-    };
-
-    def updateNewPredAndSucc(ID, Ref) {
-        log("in upd");
-        log("in upd hm size: " + otherPlayersHashMap.size());
-        log("in upd myid: " + myID);
-        newSucc(ID, Ref);
-        newPred(ID, Ref);
-    };
-
-    def getTestVariable := "Testik"; // Удалить позже
-
     //def sendReferenceToGUI() {}
     def receiveTestMessageFromAnother() { log("HEY FROM OUTSIDE"); }; // Удалить позже
 
-    // Add new player which clicked connect button in players list.
-    def getPlayer() {
+    // Name Getter
+    def getName() {
         myName;
     };
 
-    def setPlayersCounter(counter) {
-        playersCounter := counter;
-
-        // if players counter < 2 -> disable play button !!! Disabled by default
-
-        if: (playersCounter >= 2) then: {
-            // if players counter > 2 -> enable game button
-            gui.enableGameButton();
-        } else: {
-            if: (playersCounter == 4) then: {
-                // if players counter == 4 -> disable connect button
-                gui.disableConnectButton();
-            }
-        };
+    // ID Getter
+    def getID() {
+        myID;
     };
 
-    def newPlayer(UserID, Username, FarRef, PlayersCounter) {
-        if: ((otherPlayersHashMap.containsKey(UserID)).not()) then: {
-
-                // Update this device id to the new one. !!! Only if you are not connected !!!
-                if: ((isConnected).not()) then: {
-                    myID := UserID + 1;
-                };
-
-                def newPl := jlobby.edu.vub.at.weuno.Player.new(Username, FarRef);
-
-                // Add new user to hash map if no such user has been found
-                otherPlayersHashMap.put(UserID, newPl);
-
-                // Sync players counter
-                setPlayersCounter(PlayersCounter);
-
-                // Update UI
-                gui.updateConnectedGamersCounter(playersCounter);
-        };
-    };
 
     def initializeGame(Deck) {
         myDeck := Deck;
@@ -303,36 +210,52 @@ object: {
                         };
                      };
         };
-    }
+    };
 
-  }; //end-remoteInterface
+    def goOnline() {
+        // setup peer-to-peer service discovery
+        network.online();
+
+        ts := makeTupleSpace();
+        ts.goOnline(); // start exchanging public tuples
+
+        // Announce myself
+        def selfTuple := tuple: ["UnoPlayer", myID, self, isConnected];
+        ts.inject: selfTuple;
+
+        def playerTuple := tuple: ["UnoPlayer", var: `id, var: `player, var: `isConnected];
+        ts.whenever: playerTuple read: {
+             if: (!otherPlayers.contains(player)) then: {
+                otherPlayers := otherPlayers + [player];
+
+             };
+
+             // Update gamers counter UI
+             def onlinePlayersPrototype := tuple: ["UnoPlayer", var: `id, var: `player, true];
+             def onlinePlayersTuples := ts.rdg(onlinePlayersPrototype);
+             if: (onlinePlayersTuples.length > 0) then: {
+                log("online Players Tuples: " + onlinePlayersTuples);
+                gui.updateConnectedGamersCounter(onlinePlayersTuples.length);
+             };
+
+             if: (isConnected) then: {
+                log("Inside -is connected- conditional: " + id + " | " + "Player: " + player);
+                //localInterface.setPlayersCounter(playersCounter+1);
+                //gui.updateConnectedGamersCounter(playersCounter);
 
 
-   def goOnline() {
-   	// setup peer-to-peer service discovery
-
-   	export: remoteInterface as: UnoGame;
-     		whenever: UnoGame discovered: { |ref|
-     		    log("Test from One");
-     		    ref <- receiveTestMessageFromAnother();
-
-     		    if: (!otherPlayers.contains(ref)) then: {
-                    otherPlayers := otherPlayers + [ref];
+                if: (!otherPlayersHashMap.containsKey(id)) then: {
+                    otherPlayersHashMap.put(id, player);
                 };
+             };
 
-                whenever: ref disconnected: {
-                    //jPortalPong.died(id);
-                    log("Device disconected:" + ref);
-                    // TODO
-                };
+        };
 
-                whenever: ref reconnected: {
-                    // jPortalPong.resurrected(id);
-                    log("Device reconected:" + ref);
-                    // TODO
-                };
-     		};
-   };
+        def deckTuple := tuple: ["UnoDeck", var: `deck];
+        ts.whenever: deckTuple read: {
+            gui.setDeck(deck);
+        };
+    };
 
   goOnline();
   log("Hallo Android!");
@@ -340,6 +263,8 @@ object: {
   // example symbiosis
   gui := Android.parent.registerAtApplication(localInterface);
   Android.parent.topUnoAnimation();
+
+  }; //end-remoteInterface
 };
 
 };
