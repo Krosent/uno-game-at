@@ -83,14 +83,34 @@ object: {
         };
     };
 
+    // Update deck function. We update deck in TS.
+    def setDeck(Deck) {
+         def deckTuple := tuple: ["UnoDeck", var: `deck];
+         def updatedDeckTuple := tuple: ["UnoDeck", Deck];
+         ts.when: deckTuple in:{
+            ts.inject: updatedDeckTuple;
+         };
+    };
+
+    def playCard(Card) {
+       def onlinePlayersPrototype := tuple: ["UnoPlayer", var: `id, var: `player, true];
+       def onlinePlayersTuples := ts.rdg(onlinePlayersPrototype);
+
+       // use disableConnectionDialog()
+       onlinePlayersTuples.each: { |tuple| tuple.getField(3) <- playedCard(Card)};
+
+    };
+
     def initializeGame(Deck) {
         // Deck tuple in format ["UnoDeck", var: `deck]
         def deckTuple := tuple: ["UnoDeck", Deck];
         ts.inject: deckTuple;
 
-        //  setDeck(Deck);
-        // Sync deck on other devices.
-        //  otherPlayers.each: { |pl| pl <- initializeGame(Deck) };
+        def onlinePlayersPrototype := tuple: ["UnoPlayer", var: `id, var: `player, true];
+        def onlinePlayersTuples := ts.rdg(onlinePlayersPrototype);
+
+        // use disableConnectionDialog()
+        onlinePlayersTuples.each: { |tuple| tuple.getField(3) <- disableConnectionDialog()};
     };
 
     def initializeRelations() {
@@ -163,6 +183,10 @@ object: {
         gui.setRightPlayerCardCount(0);
     };
 
+    def disableConnectionDialog() {
+        gui.disableConnectionDialog();
+    };
+
     def drawCards(NumToDraw) {
         gui.drawCards(NumToDraw);
         succ[2];
@@ -176,6 +200,15 @@ object: {
 
     def updateDeck(Deck) {
         gui.updateDeck(Deck);
+    };
+
+    def playedCard(Card) {
+        log("Color: " + Card);
+        log("Action: " + Card[1]);
+
+        def card := jlobby.edu.vub.at.weuno.Card.new(Card[1], Card[2], true);
+        log("tostr" + card.toString());
+        gui.playCard(card);
     };
 
     def drawedCards(NumberOfCards, Deck, SenderFarRef) {
@@ -236,6 +269,10 @@ object: {
              if: (onlinePlayersTuples.length > 0) then: {
                 log("online Players Tuples: " + onlinePlayersTuples);
                 gui.updateConnectedGamersCounter(onlinePlayersTuples.length);
+
+                if: (onlinePlayersTuples.length != playersCounter) then: {
+                    localInterface.setPlayersCounter(onlinePlayersTuples.length);
+                };
              };
 
              if: (isConnected) then: {

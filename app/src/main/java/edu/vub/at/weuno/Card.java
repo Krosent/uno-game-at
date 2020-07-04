@@ -1,5 +1,7 @@
 package edu.vub.at.weuno;
 
+import android.util.Log;
+
 import java.lang.reflect.Field;
 import java.util.HashMap;
 
@@ -15,8 +17,6 @@ public class Card {
         yellow, red, blue, green, wild
     }
 
-
-
     private Color color;
     private Action action;
 
@@ -25,6 +25,12 @@ public class Card {
     public Card(Color color, Action action) {
         this.color = color;
         this.action = action;
+    }
+
+    public Card(String color, String action, Boolean bool) {
+        this.color = getColorFromString(color);
+        this.action = getActionFromString(action);
+        Log.e("Color: ", color);
     }
 
     public Card(Card c) {
@@ -52,6 +58,14 @@ public class Card {
         return color.toString() + "_" + action.toString();
     }
 
+    public static Color getColorFromString(String color) {
+        return Color.valueOf(color);
+    }
+
+    public static Action getActionFromString(String action) {
+        return Action.valueOf(action);
+    }
+
 
     public Color getColor() {
         return color;
@@ -61,11 +75,15 @@ public class Card {
         return action;
     }
 
-    public HashMap getCardSerialized() {
-        HashMap<String, String> card = new HashMap<>();
+    public String[] getCardSerialized() {
 
-        card.put("color", this.getColor().toString());
-        card.put("action", this.getAction().toString());
+        String[] card = new String[2];
+
+        card[0] = this.getColor().toString();
+        card[1] = this.getAction().toString();
+
+        Log.e("Get Color:", " " + card);
+        Log.e("Get colorr:", " " + card[0]);
 
         return card;
     }

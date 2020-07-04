@@ -28,6 +28,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 
 import edu.vub.at.IAT;
@@ -79,6 +80,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     private static final int _MSG_UPD_DECK = 5;
     private static final int _MSG_NOTIFY_ABOUT_DRAW_ = 6;
     private static final int _MSG_INIT_RELAT_ = 7;
+    private static final int  _MSG_PLAY_CARD = 8;
     // -------
 
     // Global Game Variables
@@ -190,13 +192,11 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         ItemTouchHelper touchHelper = new ItemTouchHelper(mh);
         touchHelper.attachToRecyclerView(handView);
 
-
         // setup animations
         animUnoTop    = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.uno_top);
         animUnoBottom = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.uno_bottom);
         animUnoLeft   = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.uno_left);
         animUnoRight  = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.uno_right);
-
 
         // show uno animation on click
         btnUno.setOnClickListener(v -> {
@@ -228,11 +228,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_INIT_DECK_,
                 cardDeck.getDeckSerialized()));
 
-        // Init succ and pred for each player
-        initRelationship();
-
-
-
         // Game is started from this point. (MSG_INIT_DECK does the same for other devices)
         setGameState();
 
@@ -249,7 +244,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         // TODO: NEED TO FIX IT
        // isCardPlayed(cardDeck.peekTopCard());
         // Draw it
-       //drawCards(1); // automoticaly notifies about the change in draw pile.
+       drawCards(1); // automoticaly notifies about the change in draw pile.
 
         setLeftPlayerCardCount(0);
         setTopPlayerCardCount(0);
@@ -272,9 +267,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
 
 
-    private void initRelationship() {
-        getmHandler().sendMessage(Message.obtain(getmHandler(),_MSG_INIT_RELAT_));
-    }
 
     @Override
     public void setGameState() {
@@ -296,7 +288,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
             }
             Log.i("Num of cards: ", " " + cardDeck.cards.size());
             drawingview.invalidate();
-            getmHandler().sendMessage(Message.obtain(getmHandler(),_MSG_NOTIFY_ABOUT_DRAW_, n, 0,  cardDeck.getDeckSerialized()));
+            getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_UPD_DECK, cardDeck.getDeckSerialized()));
 
             // notify other players about draw of cards.
             // TODO: Notify other players about the draw. They have to update corresponding player on the deck.
@@ -348,11 +340,11 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     public boolean isCardPlayed(Card card) {
 
         // TODO: Validate move:
-        if(drawingview.getTopCard() == drawingview.blankCard()) {
-            cardPlayedUI(card);
-        } else {
-
-        }
+       // if(drawingview.getTopCard() == drawingview.blankCard()) {
+       //     playCard(card);
+       // } else {
+//
+        //}
 
         // TODO: If move is not validated -> return false!
 
@@ -361,6 +353,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         //TODO: don't do this if card is not valid, maybe show a toast indicating that the move is invalid and return false
         drawingview.playCard(card);
         drawingview.invalidate();
+        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
 
         btnUno.setVisibility(adapter.getItemCount() < 2 ? View.VISIBLE : View.INVISIBLE);
 
@@ -368,10 +361,15 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     }
 
     // Update top card on this device.
-    public void cardPlayedUI(Card card) {
+    public void playCard(Card card) {
         // Update local UI
-        drawingview.playCard(card);
-        drawingview.invalidate();
+        // TODO:
+        runOnUiThread(() -> {
+            drawingview.playCard(card);
+            drawingview.invalidate();
+        });
+
+        //getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
     }
 
 
@@ -426,7 +424,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
             }
 
             runOnUiThread(() -> {
-                //cardDeck.setDeck(deck_);
                 cardDeck = new Deck(deck_);
 
                 // Setup top card
@@ -568,8 +565,14 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                     case _MSG_UPD_DECK: {
                         String[][] deck = (String[][]) msg.obj;
                         // TODO:
-                        //atwu.updateDeck(deck);
-                        Log.i("UPD DECK", "fe: " + deck.length);
+                        atwu.setDeck(deck);
+                        Log.i("UPD DECK", "" + deck.length);
+                        break;
+                    }
+
+                    case _MSG_PLAY_CARD: {
+                        String[] card = (String[]) msg.obj;
+                        atwu.playCard(card);
                         break;
                     }
 
@@ -580,12 +583,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                         Log.i("Notify About Draw:", "notif: " + deck.length);
                         break;
                     }
-
-                    case _MSG_INIT_RELAT_: {
-                        atwu.initializeRelations();
-                        break;
-                    }
-
                     /*
                     case _MSG_TOUCH_MOVE_:
                         atws.touchMove((Vector<Float>) msg.obj);
