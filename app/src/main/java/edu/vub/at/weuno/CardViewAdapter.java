@@ -86,6 +86,17 @@ public class CardViewAdapter extends RecyclerView.Adapter<CardViewAdapter.ViewHo
         notifyItemInserted(position);
     }
 
+    public Card playCardAndReturn(int id) {
+        Card targetCard = mCards.get(id);
+
+        if (mHandActionHandler.isCardPlayed(targetCard)) {
+            mCards.remove(id);
+            notifyItemRemoved(id);
+            return targetCard;
+        } else {
+            return null;
+        }
+    }
 
 }
 

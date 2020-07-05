@@ -86,6 +86,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     // Global Game Variables
     int playersCounter;
     boolean isGameStarted; // State which we need to check when we start the application.
+    boolean isFirstMove;
 
     // Direction of how game is played.
     // By default is clockwise(forward). If reverse card has been applied - the direction changes to backwards.
@@ -142,6 +143,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         updateConnectedGamersCounter(0);
         // First load of application sets game to false (not yet started).
         isGameStarted = false;
+        isFirstMove = true;
 
         connectButton.setOnClickListener(v -> {
             if(playerNicknameEditText.getText().toString().isEmpty()) {
@@ -238,13 +240,14 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         // TODO: Draw one more card and instantly play it
         // drawingview.playCard(cardDeck.peekTopCard());
 
-        //TODO: draw card >> play it >> notify about all changes >> give turn to the next player
-        //
-        // Play one card from top
-        // TODO: NEED TO FIX IT
-       // isCardPlayed(cardDeck.peekTopCard());
-        // Draw it
-       drawCards(1); // automoticaly notifies about the change in draw pile.
+        // Draw one card and then play it
+        drawCards(1); // automoticaly notifies about the change in draw pile.
+        adapter.playCardAndReturn(0);
+
+        // Draw 7 cards and ask another player to start play.
+        drawCards(7);
+
+        // TODO: Ask the next player to continue the game.
 
         setLeftPlayerCardCount(0);
         setTopPlayerCardCount(0);
@@ -289,6 +292,8 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
             Log.i("Num of cards: ", " " + cardDeck.cards.size());
             drawingview.invalidate();
             getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_UPD_DECK, cardDeck.getDeckSerialized()));
+
+
 
             // notify other players about draw of cards.
             // TODO: Notify other players about the draw. They have to update corresponding player on the deck.
@@ -355,7 +360,11 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         drawingview.invalidate();
         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
 
-        btnUno.setVisibility(adapter.getItemCount() < 2 ? View.VISIBLE : View.INVISIBLE);
+        if(!isFirstMove) {
+            btnUno.setVisibility(adapter.getItemCount() < 2 ? View.VISIBLE : View.INVISIBLE);
+        } else {
+            isFirstMove = false;
+        }
 
         return true;
     }
