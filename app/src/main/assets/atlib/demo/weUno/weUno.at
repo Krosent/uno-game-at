@@ -35,7 +35,8 @@ object: {
   // Add new players to these lists (exclude player on this playing device).
   //HashMap of [id,Far Reference]
   // UPD: HashMap of [userID,[Username, Far Reference]]
-  def otherPlayersHashMap := jlobby.edu.vub.at.weuno.OrderedHashMap.new();
+  def otherPlayersHashMap := jlobby.java.util.HashMap.new();
+  // jlobby.edu.vub.at.weuno.treemapat.new();
 
   //Array of far references, avoids iterating over hashmap
   def otherPlayers := [];
@@ -99,6 +100,43 @@ object: {
        // use disableConnectionDialog()
        onlinePlayersTuples.each: { |tuple| tuple.getField(3) <- playedCard(Card)};
 
+    };
+
+
+    def updateOPcards(Amount) {
+        def playerTupleTemplate := tuple: ["UnoPlayer", myID, var: `player, var: `isConnected];
+        def thisPlayerTuple := ts.rdp(playerTupleTemplate);
+        def thisPlayerFarRef := thisPlayerTuple.getField(3);
+
+        def keyIt := otherPlayersHashMap.keySet().iterator();
+		def valIt := otherPlayersHashMap.values().iterator();
+        while: { keyIt.hasNext() } do: {
+            def key := keyIt.next();
+            def value := valIt.next();
+
+            if: (otherPlayersHashMap.size() == 1) then: {
+                if: (myID < key) then: {
+                    value <- setLeftPlayerCardCount(Amount);
+                } else: {
+                    value <- setRightPlayerCardCount(Amount);
+                };
+
+                log("Total number of players = 2");
+            } else: {
+                // TODO: Continue here tomorrow.
+                if: (otherPlayersHashMap.size() == 2) then: {
+                    log("Total number of players = 3");
+                } else: {
+                    log("Total number of players = 4");
+                }
+            }
+        };
+
+
+        //  def onlinePlayersPrototype := tuple: ["UnoPlayer", var: `id, var: `player, true];
+        // def onlinePlayersTuples := ts.rdg(onlinePlayersPrototype);
+
+        // onlinePlayersTuples.each: { |tuple| tuple.getField(3) <- disableConnectionDialog()};
     };
 
     def initializeGame(Deck) {
@@ -211,6 +249,19 @@ object: {
         gui.playCard(card);
     };
 
+    def setTopPlayerCardCount(n) {
+        gui.setTopPlayerCardCount(n);
+    };
+
+    def setLeftPlayerCardCount(n) {
+        gui.setLeftPlayerCardCount(n);
+    };
+
+    def setRightPlayerCardCount(n) {
+        gui.setRightPlayerCardCount(n);
+    };
+
+
     def drawedCards(NumberOfCards, Deck, SenderFarRef) {
         // Find id of the players from hash map of players.
         //gui.getPlayerIdFromHMList(otherPlayersHashMap, SenderFarRef);
@@ -282,8 +333,8 @@ object: {
 
 
                 if: (!otherPlayersHashMap.containsKey(id)) then: {
-                    otherPlayersHashMap.put(id, player);
-                };
+                    if: (id != myID) then: { otherPlayersHashMap.put(id, player) }
+                }
              };
 
         };

@@ -81,6 +81,10 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     private static final int _MSG_NOTIFY_ABOUT_DRAW_ = 6;
     private static final int _MSG_INIT_RELAT_ = 7;
     private static final int  _MSG_PLAY_CARD = 8;
+    /*
+        Update opponents' cards on the board.
+     */
+    private static final int _MSG_UPD_OP_CARDS = 9;
     // -------
 
     // Global Game Variables
@@ -211,6 +215,10 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         btnUnoLeft.setOnClickListener(v -> { startUnoAnimation(animUnoLeft); });
         btnUnoRight.setOnClickListener(v -> { startUnoAnimation(animUnoRight); });
 
+        setLeftPlayerCardCount(0);
+        setTopPlayerCardCount(0);
+        setRightPlayerCardCount(0);
+
     }
 
     @Override
@@ -249,9 +257,9 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
         // TODO: Ask the next player to continue the game.
 
-        setLeftPlayerCardCount(0);
-        setTopPlayerCardCount(0);
-        setRightPlayerCardCount(0);
+       // setLeftPlayerCardCount(0);
+       // setTopPlayerCardCount(0);
+        //setRightPlayerCardCount(0);
 
 
 
@@ -292,7 +300,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
             Log.i("Num of cards: ", " " + cardDeck.cards.size());
             drawingview.invalidate();
             getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_UPD_DECK, cardDeck.getDeckSerialized()));
-
+            getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_UPD_OP_CARDS));
 
 
             // notify other players about draw of cards.
@@ -582,6 +590,11 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                     case _MSG_PLAY_CARD: {
                         String[] card = (String[]) msg.obj;
                         atwu.playCard(card);
+                        break;
+                    }
+
+                    case _MSG_UPD_OP_CARDS: {
+                        atwu.updateOPcards(adapter.getItemCount());
                         break;
                     }
 

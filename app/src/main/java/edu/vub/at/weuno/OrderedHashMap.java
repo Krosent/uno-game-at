@@ -12,9 +12,7 @@ import java.util.TreeMap;
 
 import edu.vub.at.actors.ATFarReference;
 
-public class OrderedHashMap<K,V> {
-
-
+public class OrderedHashMap {
     TreeMap<Integer, ATFarReference> map;
 
     public OrderedHashMap(TreeMap<Integer, ATFarReference> customHashMap) {
@@ -95,6 +93,8 @@ public class OrderedHashMap<K,V> {
 
         return null;
     }
+
+
 
     @Override
     public String toString() {

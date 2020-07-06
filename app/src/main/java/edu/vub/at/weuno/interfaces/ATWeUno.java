@@ -26,6 +26,21 @@ public interface ATWeUno {
     @Async
     void playCard(String[] card);
 
+    /*
+        Update a number of opponent cards. Parameter amount states the number of cards player is holding.
+     */
+    @Async
+    void updateOPcards(int amount);
+
+    @Async
+    void setTopPlayerCardCount(int n);
+
+    @Async
+    void setLeftPlayerCardCount(int n);
+
+    @Async
+    void setRightPlayerCardCount(int n);
+
     @Async
     void askDrawCards(int numberOfCards, int userID);
 
