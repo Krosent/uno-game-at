@@ -28,8 +28,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.TreeMap;
 
 import edu.vub.at.IAT;
 import edu.vub.at.android.util.IATAndroid;
@@ -85,6 +87,8 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         Update opponents' cards on the board.
      */
     private static final int _MSG_UPD_OP_CARDS = 9;
+
+    private static final int _MSG_NEXT_PLAYER_MOVE = 10;
     // -------
 
     // Global Game Variables
@@ -92,16 +96,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     boolean isGameStarted; // State which we need to check when we start the application.
     boolean isFirstMove;
 
-    // Direction of how game is played.
-    // By default is clockwise(forward). If reverse card has been applied - the direction changes to backwards.
-    public enum Direction { forward, backwards }
-    Direction moveDirection = Direction.forward;
-
-    // flag which demonstrates ability to play a card for the current player.
-    public boolean movementEnabled = false;
-
-    // Timer
-    CountDownTimer MyCountDownTimer;
+    Activity activity;
 
     // TODO: State of current game (if disconected)
     // TODO: Players Information
@@ -110,6 +105,8 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        this.activity = this;
 
         // Ambient Talk Initialization
         if (iat == null) {
@@ -256,6 +253,8 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         drawCards(7);
 
         // TODO: Ask the next player to continue the game.
+        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
+
 
        // setLeftPlayerCardCount(0);
        // setTopPlayerCardCount(0);
@@ -507,6 +506,9 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         return getSharedPref().getString(key, "empty");
     }
 
+    public void displayToast(String toastText) {
+        activity.runOnUiThread(() -> Toast.makeText(activity, toastText, Toast.LENGTH_LONG).show());
+    }
 
     @Override
     public void disableConnectButton() {
@@ -591,6 +593,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                         String[] card = (String[]) msg.obj;
                         atwu.playCard(card);
                         break;
+
                     }
 
                     case _MSG_UPD_OP_CARDS: {
@@ -603,6 +606,11 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                         String[][] deck = (String[][]) msg.obj;
                         atwu.drawedCards(numberOfDraw, deck);
                         Log.i("Notify About Draw:", "notif: " + deck.length);
+                        break;
+                    }
+
+                    case _MSG_NEXT_PLAYER_MOVE: {
+                        atwu.nextPlayer();
                         break;
                     }
                     /*
@@ -626,7 +634,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
             Looper.prepare();
             Looper.loop();
         }
-
 
     }
 }

@@ -110,6 +110,8 @@ object: {
 
         def keyIt := otherPlayersHashMap.keySet().iterator();
 		def valIt := otherPlayersHashMap.values().iterator();
+
+
         while: { keyIt.hasNext() } do: {
             def key := keyIt.next();
             def value := valIt.next();
@@ -132,12 +134,84 @@ object: {
             }
         };
 
-
-        //  def onlinePlayersPrototype := tuple: ["UnoPlayer", var: `id, var: `player, true];
-        // def onlinePlayersTuples := ts.rdg(onlinePlayersPrototype);
-
-        // onlinePlayersTuples.each: { |tuple| tuple.getField(3) <- disableConnectionDialog()};
     };
+
+    def sortTable(table) {
+        // TODO
+    };
+
+    def nextID(table, currentID) {
+        // TODO
+    };
+
+    def prevID(table, currentID) {
+        // TODO
+    };
+
+
+    def nextPlayer() {
+        def unoGameStateProto := tuple: ["UnoGameState", var: `currentPlayerID, var: `moveDirection, var: `isGameEnded];
+        def gameState := ts.rdp(unoGameStateProto);
+        def nextPlayerID := myID; // In the begining we set it to our id, since we need to find higher value.
+        def keyIt := otherPlayersHashMap.keySet().iterator();
+        def valIt := otherPlayersHashMap.values().iterator();
+
+        def keysTable := otherPlayersHashMap.keySet().toArray();
+
+        // Not efficient sorting algorithm. Perhaps will replace this part of code (or not).
+        // Tried several ideas with symbiosis, however symbiosis does not work as I wish. Efficiency is not important in this part since we have only few keys to manipulate.
+        // TODO: MOVE THIS PART OF CODE to sortTable/1 method.
+        def sortedKeysTable := [];
+
+        def i := 1;
+        def j := 2;
+        while: { i < keysTable.length() } do: {
+            if: (keysTable[i] > keysTable[j]) then: {
+                def tempI := i;
+                def tempJ := j;
+                keysTable[i] := j;
+                keysTable[j] := i;
+            }
+        };
+
+        if: (gameState.getField(3) == "Forward") then: {
+
+            while: { keyIt.hasNext() } do: {
+                def key := keyIt.next();
+                def value := valIt.next();
+            };
+            log("Move is Forward");
+            log("Sorted: " + keysTable);
+            // Next Player should be a player whom ID is higher than current player, but not higher than others.
+           // while: { keyIt.hasNext() } do: {
+           //     def key := keyIt.next();
+           //     def value := valIt.next();
+           //     log("Key:" + " " + key);
+
+             //   if: (key > myID) then: {
+               //     if: (nextPlayerID < key) then: { nextPlayerID := key };
+               // };
+            //};
+
+        } else: {
+             // Next Player should be a player whom ID is lower than current player, but not lower than others.
+            while: { keyIt.hasNext() } do: {
+                def key := keyIt.next();
+                def value := valIt.next();
+
+                if: (key < myID) then: {
+                    if: (nextPlayerID > key) then: { nextPlayerID := key };
+                };
+            };
+        };
+
+        // Fetch Player
+        def playerTupleTemplate := tuple: ["UnoPlayer", nextPlayerID, var: `player, var: `isConnected];
+        def playerTuple := ts.rdp(playerTupleTemplate);
+        def playerFarRef := playerTuple.getField(3);
+        playerFarRef <- playTurn();
+    };
+
 
     def initializeGame(Deck) {
         // Deck tuple in format ["UnoDeck", var: `deck]
@@ -149,6 +223,10 @@ object: {
 
         // use disableConnectionDialog()
         onlinePlayersTuples.each: { |tuple| tuple.getField(3) <- disableConnectionDialog()};
+
+        // set start game state tuple
+        def unoGameState := tuple: ["UnoGameState", myID, "Forward", false];
+        ts.inject: unoGameState;
     };
 
     def initializeRelations() {
@@ -186,10 +264,6 @@ object: {
 
 
     def getPlayersCounter() { playersCounter };
-
-    def nextPlayer() {
-        // Next Player is id + 1, unless id == size, then id == 0;
-    };
   };
 
   //interface for remote painters.
@@ -261,6 +335,9 @@ object: {
         gui.setRightPlayerCardCount(n);
     };
 
+    def playTurn() {
+        gui.displayToast("Your Turn!");
+    };
 
     def drawedCards(NumberOfCards, Deck, SenderFarRef) {
         // Find id of the players from hash map of players.
@@ -338,8 +415,14 @@ object: {
                     if: (id != myID) then: { otherPlayersHashMap.put(id, player) }
                 }
              };
-
         };
+
+        // State Game Listener
+        def unoGameStateProto := tuple: ["UnoGameState", var: `currentPlayerID, var: `moveDirection, var: `isGameEnded];
+        ts.whenever: unoGameStateProto read: {
+            log("Game state has been updated!");
+        };
+
 
         def deckTuple := tuple: ["UnoDeck", var: `deck];
         ts.whenever: deckTuple read: {

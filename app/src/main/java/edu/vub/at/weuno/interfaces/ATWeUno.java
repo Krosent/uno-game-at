@@ -42,6 +42,9 @@ public interface ATWeUno {
     void setRightPlayerCardCount(int n);
 
     @Async
+    void nextPlayer();
+
+    @Async
     void askDrawCards(int numberOfCards, int userID);
 
     @Async

@@ -29,6 +29,8 @@ public interface JWeUno {
     // start game
     void startGame();
 
+    void displayToast(String text);
+
 
     // finish game
     // verify end game
