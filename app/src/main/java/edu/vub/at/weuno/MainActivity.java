@@ -246,14 +246,13 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         // drawingview.playCard(cardDeck.peekTopCard());
 
         // Draw one card and then play it
-        drawCards(1); // automoticaly notifies about the change in draw pile.
+        drawCards(8); // automoticaly notifies about the change in draw pile.
         adapter.playCardAndReturn(0);
 
         // Draw 7 cards and ask another player to start play.
-        drawCards(7);
+        //drawCards(7);
 
-        // TODO: Ask the next player to continue the game.
-        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
+        //getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
 
 
        // setLeftPlayerCardCount(0);
@@ -366,6 +365,8 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         drawingview.playCard(card);
         drawingview.invalidate();
         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
+        // Ask the next player to continue the game.
+        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
 
         if(!isFirstMove) {
             btnUno.setVisibility(adapter.getItemCount() < 2 ? View.VISIBLE : View.INVISIBLE);
@@ -454,6 +455,15 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                 // START GAME
                 //startGame();
             });
+    }
+
+    @Override
+    public void playTurn() {
+        int cardsCounter = adapter.getItemCount();
+        if(cardsCounter < 7) {
+            drawCards(7-cardsCounter);
+        }
+        displayToast("Your Turn!");
     }
 
     @Override

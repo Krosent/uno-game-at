@@ -31,6 +31,8 @@ public interface JWeUno {
 
     void displayToast(String text);
 
+    void playTurn();
+
 
     // finish game
     // verify end game

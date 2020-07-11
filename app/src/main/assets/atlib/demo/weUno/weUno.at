@@ -136,57 +136,71 @@ object: {
 
     };
 
-    def sortTable(table) {
-        // Not efficient sorting algorithm. Perhaps will replace this part of code (or not).
-        // Tried several ideas with symbiosis, however symbiosis does not work as I wish. Efficiency is not important in this part since we have only few keys to manipulate.
-        def tempTable := table;
-        def i := 1;
-        def j := 2;
-        while: { i <= tempTable.length() } do: {
-            if: (tempTable.length() != 1) then: {
-                if: (tempTable[i] > tempTable[j]) then: {
-                        def tempI := i;
-                        def tempJ := j;
-                        tempTable[i] := j;
-                        tempTable[j] := i;
-                };
-            };
-            i := i + 1;
-            j := j + 1;
+    // Sort Implementation taken from documentation: http://soft.vub.ac.be/amop/at/tutorial/basic#control_flow_constructs
+    // Based on quick sort algorithm.
+    def sort(table, cmp := { |e1,e2| e1 < e2 }) {
+      def quickSort(table, low, high) {
+        def left := low;
+        def right := high;
+        def pivot := table[(left+right) /- 2];
+        def save := nil;
+        while: { left <= right } do: {
+          while: { cmp(table[left], pivot) } do: {
+            left := left + 1
+          };
+          while: { cmp(pivot, table[right]) } do: {
+            right := right - 1
+          };
+          if: (left <= right) then: {
+            // swap elements
+            save := table[left];
+            table[left] := table[right];
+            table[right] := save;
+            left := left + 1;
+            right := right - 1;
+          };
         };
-        tempTable;
+        if: (low<right) then: { quickSort(table,low,right) };
+        if: (high>left) then: { quickSort(table,left,high) };
+        table;
+      };
+      quickSort(table, 1, table.length);
     };
 
     def nextID(table, currentID) {
-        def iterator := 1;
         def nextID := -1;
-        // Use this method only with sorted table.
-        while: { (iterator <= table.length()).and: { nextID == -1 } } do: {
+        def notFound := true;
+        def iterator := 1;
+
+        while: { notFound } do: {
             if: (table[iterator] > currentID) then: {
+                nextID := table[iterator];
+                notFound := false;
+            } else: {
                 if: (iterator == table.length()) then: {
                     nextID := table[1];
-                } else: {
-                    nextID := table[iterator];
-                };
+                    notFound := false;
+                }
             };
             iterator := iterator + 1;
         };
-
-        if: (nextID == -1) then: { nextID := table[1] };
 
         nextID;
     };
 
     def prevID(table, currentID) {
         def iterator := table.length();
+         def notFound := true;
         def predID := -1;
         // Use this method only with sorted table.
-        while: { (iterator != 0).and: { predID == -1 } } do: {
+        while: { notFound } do: {
             if: (table[iterator] < currentID) then: {
                 if: (iterator == 1) then: {
                     predID := table[table.length()];
+                    notFound := false;
                 } else: {
                     predID := table[iterator];
+                    notFound := false;
                 };
             };
             iterator := iterator - 1;
@@ -209,7 +223,7 @@ object: {
 
 
         // TODO: MOVE THIS PART OF CODE to sortTable/1 method.
-        def sortedKeysTable := sortTable(keysTable);
+        def sortedKeysTable := sort(keysTable);
         nextPlayerID := nextID(sortedKeysTable, myID);
         log("Player next id: " + nextPlayerID);
 
@@ -217,24 +231,10 @@ object: {
         //log("Player prev id: " + prevPlayerID);
 
         if: (gameState.getField(3) == "Forward") then: {
-
             while: { keyIt.hasNext() } do: {
                 def key := keyIt.next();
                 def value := valIt.next();
             };
-            log("Move is Forward");
-            log("Sorted: " + sortedKeysTable);
-            // Next Player should be a player whom ID is higher than current player, but not higher than others.
-           // while: { keyIt.hasNext() } do: {
-           //     def key := keyIt.next();
-           //     def value := valIt.next();
-           //     log("Key:" + " " + key);
-
-             //   if: (key > myID) then: {
-               //     if: (nextPlayerID < key) then: { nextPlayerID := key };
-               // };
-            //};
-
         } else: {
              // Next Player should be a player whom ID is lower than current player, but not lower than others.
             while: { keyIt.hasNext() } do: {
@@ -361,7 +361,6 @@ object: {
         log("Action: " + Card[1]);
 
         def card := jlobby.edu.vub.at.weuno.Card.new(Card[1], Card[2], true);
-        log("tostr" + card.toString());
         gui.playCard(card);
     };
 
@@ -378,7 +377,7 @@ object: {
     };
 
     def playTurn() {
-        gui.displayToast("Your Turn!");
+        gui.playTurn();
     };
 
     def drawedCards(NumberOfCards, Deck, SenderFarRef) {
@@ -425,6 +424,7 @@ object: {
         // Announce myself
 
         def selfTuple := tuple: ["UnoPlayer", myID, self, isConnected];
+        log("MYSELF: " + myID);
 
         ts.inject: selfTuple;
 
@@ -448,11 +448,6 @@ object: {
              };
 
              if: (isConnected) then: {
-                log("Inside -is connected- conditional: " + id + " | " + "Player: " + player);
-                //localInterface.setPlayersCounter(playersCounter+1);
-                //gui.updateConnectedGamersCounter(playersCounter);
-
-
                 if: (!otherPlayersHashMap.containsKey(id)) then: {
                     if: (id != myID) then: { otherPlayersHashMap.put(id, player) }
                 }
