@@ -137,15 +137,64 @@ object: {
     };
 
     def sortTable(table) {
-        // TODO
+        // Not efficient sorting algorithm. Perhaps will replace this part of code (or not).
+        // Tried several ideas with symbiosis, however symbiosis does not work as I wish. Efficiency is not important in this part since we have only few keys to manipulate.
+        def tempTable := table;
+        def i := 1;
+        def j := 2;
+        while: { i <= tempTable.length() } do: {
+            if: (tempTable.length() != 1) then: {
+                if: (tempTable[i] > tempTable[j]) then: {
+                        def tempI := i;
+                        def tempJ := j;
+                        tempTable[i] := j;
+                        tempTable[j] := i;
+                };
+            };
+            i := i + 1;
+            j := j + 1;
+        };
+        tempTable;
     };
 
     def nextID(table, currentID) {
-        // TODO
+        def iterator := 1;
+        def nextID := -1;
+        // Use this method only with sorted table.
+        while: { (iterator <= table.length()).and: { nextID == -1 } } do: {
+            if: (table[iterator] > currentID) then: {
+                if: (iterator == table.length()) then: {
+                    nextID := table[1];
+                } else: {
+                    nextID := table[iterator];
+                };
+            };
+            iterator := iterator + 1;
+        };
+
+        if: (nextID == -1) then: { nextID := table[1] };
+
+        nextID;
     };
 
     def prevID(table, currentID) {
-        // TODO
+        def iterator := table.length();
+        def predID := -1;
+        // Use this method only with sorted table.
+        while: { (iterator != 0).and: { predID == -1 } } do: {
+            if: (table[iterator] < currentID) then: {
+                if: (iterator == 1) then: {
+                    predID := table[table.length()];
+                } else: {
+                    predID := table[iterator];
+                };
+            };
+            iterator := iterator - 1;
+        };
+
+        if: (predID == -1) then: { predID := table[table.length()] };
+
+        predID;
     };
 
 
@@ -158,21 +207,14 @@ object: {
 
         def keysTable := otherPlayersHashMap.keySet().toArray();
 
-        // Not efficient sorting algorithm. Perhaps will replace this part of code (or not).
-        // Tried several ideas with symbiosis, however symbiosis does not work as I wish. Efficiency is not important in this part since we have only few keys to manipulate.
-        // TODO: MOVE THIS PART OF CODE to sortTable/1 method.
-        def sortedKeysTable := [];
 
-        def i := 1;
-        def j := 2;
-        while: { i < keysTable.length() } do: {
-            if: (keysTable[i] > keysTable[j]) then: {
-                def tempI := i;
-                def tempJ := j;
-                keysTable[i] := j;
-                keysTable[j] := i;
-            }
-        };
+        // TODO: MOVE THIS PART OF CODE to sortTable/1 method.
+        def sortedKeysTable := sortTable(keysTable);
+        nextPlayerID := nextID(sortedKeysTable, myID);
+        log("Player next id: " + nextPlayerID);
+
+        //def prevPlayerID := prevID(sortedKeysTable, myID);
+        //log("Player prev id: " + prevPlayerID);
 
         if: (gameState.getField(3) == "Forward") then: {
 
@@ -181,7 +223,7 @@ object: {
                 def value := valIt.next();
             };
             log("Move is Forward");
-            log("Sorted: " + keysTable);
+            log("Sorted: " + sortedKeysTable);
             // Next Player should be a player whom ID is higher than current player, but not higher than others.
            // while: { keyIt.hasNext() } do: {
            //     def key := keyIt.next();
