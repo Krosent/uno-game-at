@@ -51,6 +51,9 @@ public class Deck {
     }
 
     public Card drawCard() {
+        LinkedList<Card> c = new LinkedList<>(cards);
+        Collections.shuffle(c);
+        cards = c;
         return cards.poll();
     }
 

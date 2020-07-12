@@ -460,9 +460,12 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     @Override
     public void playTurn() {
         int cardsCounter = adapter.getItemCount();
-        if(cardsCounter < 7) {
-            drawCards(7-cardsCounter);
+        if(cardsCounter == 0 && isFirstMove) {
+            drawCards(7);
         }
+        /*if(cardsCounter < 7) {
+            drawCards(7-cardsCounter);
+        }*/
         displayToast("Your Turn!");
     }
 

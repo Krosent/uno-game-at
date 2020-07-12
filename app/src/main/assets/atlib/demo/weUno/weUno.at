@@ -104,37 +104,49 @@ object: {
 
 
     def updateOPcards(Amount) {
-        def playerTupleTemplate := tuple: ["UnoPlayer", myID, var: `player, var: `isConnected];
-        def thisPlayerTuple := ts.rdp(playerTupleTemplate);
-        def thisPlayerFarRef := thisPlayerTuple.getField(3);
+          def playerTupleTemplate := tuple: ["UnoPlayer", myID, var: `player, var: `isConnected];
+          def thisPlayerTuple := ts.rdp(playerTupleTemplate);
+          def thisPlayerFarRef := thisPlayerTuple.getField(3);
 
-        def keyIt := otherPlayersHashMap.keySet().iterator();
-		def valIt := otherPlayersHashMap.values().iterator();
+   		def keysTable := otherPlayersHashMap.keySet().toArray();
+          def sortedKeysTable := sort(keysTable);
 
+          if: (sortedKeysTable.length() == 1) then: {
+              def key := sortedKeysTable[1];
+              if: (myID < key) then: {
+                  otherPlayersHashMap.get(key) <- setLeftPlayerCardCount(Amount);
+              } else: {
+                  otherPlayersHashMap.get(key) <- setRightPlayerCardCount(Amount);
+              };
 
-        while: { keyIt.hasNext() } do: {
-            def key := keyIt.next();
-            def value := valIt.next();
+              log("Total number of players = 2");
+          } else: {
+              if: (sortedKeysTable.length() == 2) then: {
+              def a := otherPlayersHashMap.get(sortedKeysTable[1]);
+              def b := otherPlayersHashMap.get(sortedKeysTable[2]);
 
-            if: (otherPlayersHashMap.size() == 1) then: {
-                if: (myID < key) then: {
-                    value <- setLeftPlayerCardCount(Amount);
-                } else: {
-                    value <- setRightPlayerCardCount(Amount);
-                };
-
-                log("Total number of players = 2");
-            } else: {
-                // TODO: Continue here tomorrow.
-                if: (otherPlayersHashMap.size() == 2) then: {
-                    log("Total number of players = 3");
-                } else: {
-                    log("Total number of players = 4");
-                }
-            }
-        };
+              if: ((myID > sortedKeysTable[1]).and: { myID < sortedKeysTable[2] }) then: {
+                  a <- setRightPlayerCardCount(Amount);
+                  b <- setLeftPlayerCardCount(Amount);
+              } else: {
+                  if: (myID < sortedKeysTable[1]) then: {
+                      a <- setLeftPlayerCardCount(Amount);
+                      b <- setTopPlayerCardCount(Amount);
+                  } else: {
+                      if: (myID > sortedKeysTable[2]) then: {
+                          a <- setTopPlayerCardCount(Amount);
+                          b <- setRightPlayerCardCount(Amount);
+                      };
+                  };
+              };
+              log("Total number of players = 3");
+              } else: {
+                log("Total number of players = 4");
+              }
+              }
 
     };
+
 
     // Sort Implementation taken from documentation: http://soft.vub.ac.be/amop/at/tutorial/basic#control_flow_constructs
     // Based on quick sort algorithm.
@@ -221,8 +233,6 @@ object: {
 
         def keysTable := otherPlayersHashMap.keySet().toArray();
 
-
-        // TODO: MOVE THIS PART OF CODE to sortTable/1 method.
         def sortedKeysTable := sort(keysTable);
         nextPlayerID := nextID(sortedKeysTable, myID);
         log("Player next id: " + nextPlayerID);
