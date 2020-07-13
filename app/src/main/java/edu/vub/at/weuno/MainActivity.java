@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     // Dialog UI Elements
     // Create the AlertDialog
     AlertDialog dialog;
+    AlertDialog colorPickerDialog;
     private AlertDialog.Builder builder;
     private LayoutInflater inflater;
     private View dialogView;
@@ -350,29 +351,70 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     @Override
     public boolean isCardPlayed(Card card) {
 
-        // TODO: Validate move:
-       // if(drawingview.getTopCard() == drawingview.blankCard()) {
-       //     playCard(card);
-       // } else {
-//
-        //}
+        Card.Color color = card.getColor();
+        Card.Action action = card.getAction();
 
-        // TODO: If move is not validated -> return false!
-
-        // TODO: If Move is validated, evaluate below code:
-
-        //TODO: don't do this if card is not valid, maybe show a toast indicating that the move is invalid and return false
-        drawingview.playCard(card);
-        drawingview.invalidate();
-        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
-        // Ask the next player to continue the game.
-        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
+        Card topCard = drawingview.getTopCard();
+        Card.Color topCardColor = topCard.getColor();
+        Card.Action topCardAction = topCard.getAction();
 
         if(!isFirstMove) {
             btnUno.setVisibility(adapter.getItemCount() < 2 ? View.VISIBLE : View.INVISIBLE);
         } else {
             isFirstMove = false;
         }
+
+        // TODO: Validate move:
+        if(drawingview.getTopCard() == drawingview.blankCard()) {
+            playCard(card);
+            getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
+            // Ask the next player to continue the game.
+            getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
+
+            return true;
+        } else {
+            if(color == Card.Color.wild) {
+                if(action == Card.Action.plus4) {
+
+                } else if(action == Card.Action.color) {
+                    // TODO: You can select color of draw pile.
+                }
+
+            } else {
+                if(color != topCardColor) {
+                    displayToast("You cannot play this card! Please try another one.");
+                    return false;
+                } else {
+                    if(action == Card.Action.plus2) {
+                        // TODO: Plus two card move
+                    } else if(action == Card.Action.reverse) {
+                        // TODO: Reverse Game
+                    } else if(action == Card.Action.skip) {
+                        // TODO: Skip next player turn
+                    } else {
+                        // If top card has the same color and that is a simple card 1-9, then you just return true and play that card.
+                        playCard(card);
+                        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
+                        // Ask the next player to continue the game.
+                        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // TODO: If move is not validated -> return false!
+
+
+
+
+        // TODO: If Move is validated, evaluate below code:
+
+        //TODO: don't do this if card is not valid, maybe show a toast indicating that the move is invalid and return false
+        playCard(card);
+        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
+        // Ask the next player to continue the game.
+        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
 
         return true;
     }
