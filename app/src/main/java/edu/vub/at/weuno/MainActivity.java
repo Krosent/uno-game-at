@@ -403,20 +403,8 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
             }
         }
 
-        // TODO: If move is not validated -> return false!
-
-
-
-
-        // TODO: If Move is validated, evaluate below code:
-
-        //TODO: don't do this if card is not valid, maybe show a toast indicating that the move is invalid and return false
-        playCard(card);
-        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
-        // Ask the next player to continue the game.
-        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
-
-        return true;
+        // If move is not validated -> return false!
+        return false;
     }
 
     // Update top card on this device.
