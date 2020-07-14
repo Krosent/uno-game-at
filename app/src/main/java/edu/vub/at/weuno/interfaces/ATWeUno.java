@@ -45,8 +45,12 @@ public interface ATWeUno {
     void nextPlayer();
 
     @Async
-    void askDrawCards(int numberOfCards, int userID);
+    void switchMoveDirection();
 
     @Async
-    void drawedCards(int numberOfCards, String[][] deck);
+    void plusTwoAction();
+
+    @Async
+    void skipAction();
+
 }

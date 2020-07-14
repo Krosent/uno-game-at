@@ -33,6 +33,8 @@ public interface JWeUno {
 
     void playTurn();
 
+    void switchMoveDirection();
+
 
     // finish game
     // verify end game

@@ -84,6 +84,9 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     private static final int _MSG_NOTIFY_ABOUT_DRAW_ = 6;
     private static final int _MSG_INIT_RELAT_ = 7;
     private static final int  _MSG_PLAY_CARD = 8;
+    private static final int _MSG_SWITCH_DIRECTION = 34;
+    private static final int _MSG_PLUS_TWO_ACT = 245;
+    private static final int _MSG_SKIP_MOVE_ACT = 253;
     /*
         Update opponents' cards on the board.
      */
@@ -270,12 +273,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     }
 
 
-       // TimerRunning = true;
-       // StartPauseButton.setText("Pause");
-       // ResetButton.setVisibility(View.INVISIBLE);
-
-
-
 
 
     @Override
@@ -386,9 +383,11 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                     return false;
                 } else {
                     if(action == Card.Action.plus2) {
-                        // TODO: Plus two card move
+                        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLUS_TWO_ACT));
+                        return true;
                     } else if(action == Card.Action.reverse) {
-                        // TODO: Reverse Game
+                        switchMoveDirection();
+                        return true;
                     } else if(action == Card.Action.skip) {
                         // TODO: Skip next player turn
                     } else {
@@ -497,6 +496,11 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
             drawCards(7-cardsCounter);
         }*/
         displayToast("Your Turn!");
+    }
+
+    @Override
+    public void switchMoveDirection() {
+        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_SWITCH_DIRECTION));
     }
 
     @Override
@@ -618,12 +622,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                         atwu.initializeGame(deck);
                         break;
                     }
-                    case _MSG_ASK_DRAW_CARDS_: {
-                        int number = (int) msg.obj;
-                        int playerID = (int) msg.arg1;
-                        atwu.askDrawCards(number, playerID);
-                        break;
-                    }
+
                     case _MSG_UPD_DECK: {
                         String[][] deck = (String[][]) msg.obj;
                         // TODO:
@@ -644,31 +643,23 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                         break;
                     }
 
-                    case _MSG_NOTIFY_ABOUT_DRAW_: {
-                        int numberOfDraw = msg.arg1;
-                        String[][] deck = (String[][]) msg.obj;
-                        atwu.drawedCards(numberOfDraw, deck);
-                        Log.i("Notify About Draw:", "notif: " + deck.length);
-                        break;
-                    }
-
                     case _MSG_NEXT_PLAYER_MOVE: {
                         atwu.nextPlayer();
                         break;
                     }
-                    /*
-                    case _MSG_TOUCH_MOVE_:
-                        atws.touchMove((Vector<Float>) msg.obj);
-                        break;
-                    case _MSG_TOUCH_END_: {
-                        float[] endPoint = (float[]) msg.obj;
-                        atws.touchEnd(endPoint[0], endPoint[1]);
+
+                    case _MSG_SWITCH_DIRECTION: {
+                        atwu.switchMoveDirection();
                         break;
                     }
-                    case _MSG_RESET_:
-                        atws.reset();
+                    case _MSG_PLUS_TWO_ACT: {
+                        atwu.plusTwoAction();
                         break;
-                        */
+                    }
+                    case _MSG_SKIP_MOVE_ACT: {
+                        atwu.skipAction();
+                        break;
+                    }
                 }
             }
         };

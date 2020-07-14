@@ -223,8 +223,7 @@ object: {
         predID;
     };
 
-
-    def nextPlayer() {
+    def getNextPlayerID() {
         def unoGameStateProto := tuple: ["UnoGameState", var: `currentPlayerID, var: `moveDirection, var: `isGameEnded];
         def gameState := ts.rdp(unoGameStateProto);
         def nextPlayerID := myID; // In the begining we set it to our id, since we need to find higher value.
@@ -234,36 +233,66 @@ object: {
         def keysTable := otherPlayersHashMap.keySet().toArray();
 
         def sortedKeysTable := sort(keysTable);
-        nextPlayerID := nextID(sortedKeysTable, myID);
-        log("Player next id: " + nextPlayerID);
-
-        //def prevPlayerID := prevID(sortedKeysTable, myID);
-        //log("Player prev id: " + prevPlayerID);
 
         if: (gameState.getField(3) == "Forward") then: {
-            while: { keyIt.hasNext() } do: {
-                def key := keyIt.next();
-                def value := valIt.next();
-            };
+            nextPlayerID := nextID(sortedKeysTable, myID);
+            log("Player next id (Forward): " + nextPlayerID);
         } else: {
              // Next Player should be a player whom ID is lower than current player, but not lower than others.
-            while: { keyIt.hasNext() } do: {
-                def key := keyIt.next();
-                def value := valIt.next();
-
-                if: (key < myID) then: {
-                    if: (nextPlayerID > key) then: { nextPlayerID := key };
-                };
-            };
+            nextPlayerID := prevID(sortedKeysTable, myID);
+            log("Player next id (Backwards): " + nextPlayerID);
         };
+
+        nextPlayerID;
+    };
+
+    def getNextPlayerRef() {
+        def nextPlayerID := getNextPlayerID();
 
         // Fetch Player
         def playerTupleTemplate := tuple: ["UnoPlayer", nextPlayerID, var: `player, var: `isConnected];
         def playerTuple := ts.rdp(playerTupleTemplate);
         def playerFarRef := playerTuple.getField(3);
+
+        playerFarRef;
+    };
+
+    def nextPlayer() {
+        def playerFarRef := getNextPlayerRef();
         playerFarRef <- playTurn();
     };
 
+    def switchMoveDirection() {
+        def unoGameStateProto := tuple: ["UnoGameState", var: `currentPlayerID, var: `moveDirection, var: `isGameEnded];
+        ts.when: unoGameStateProto in: {
+            if: (moveDirection == "Forward") then: {
+                def unoGameStateUpdatedTuple := tuple: ["UnoGameState", currentPlayerID, "Backward", isGameEnded];
+                ts.inject: unoGameStateUpdatedTuple;
+            } else: {
+                def unoGameStateUpdatedTuple := tuple: ["UnoGameState", currentPlayerID, "Forward", isGameEnded];
+                ts.inject: unoGameStateUpdatedTuple;
+            }
+        };
+    };
+
+    def plusTwoAction() {
+        // Get next player
+        def playerFarRef := getNextPlayerRef();
+
+        // Ask to draw to cards
+        playerFarRef <- drawCards(2);
+
+        // Ask player to skip a turn
+        playerFarRef <- skipTurn();
+    };
+
+    def skipAction() {
+        // Get next player
+        def playerFarRef := getNextPlayerRef();
+
+        // Ask player to skip a turn
+        playerFarRef <- skipTurn();
+    };
 
     def initializeGame(Deck) {
         // Deck tuple in format ["UnoDeck", var: `deck]
@@ -281,39 +310,9 @@ object: {
         ts.inject: unoGameState;
     };
 
-    def initializeRelations() {
-        // TODO: update pred on other devices
-        // join(UserID, FarRef);
-        otherPlayers.each: { |pl| pl <- join(myID, remoteInterface); };
-    };
-
-    def askDrawCards(Num, WhoToDrawID) {
-        def usr := otherPlayersHashMap.getPlayerFarRef(WhoToDrawID);
-        usr <- drawCards(Num)
-    };
-
-    // This function is used to ask other players to draw cards instantly.
-    def drawCards(Num) {
-        //gui.drawCards(Num);
-        //otherPlayers.each: { |pl| pl <- drawCards(Num) };
-        // TODO---
-        // We start to ask a draw from succ player (the next player)
-
-
-        //succ[2] <- drawCards(Num);
-    };
-
-
-    def drawedCards(NumberOfCards, Deck) {
-        myReference := remoteInterface;
-        setDeck(Deck);
-        otherPlayers.each: { |pl| pl <- drawedCards(NumberOfCards, Deck, myReference) };
-    };
-
     def getId() {
         myID;
     };
-
 
     def getPlayersCounter() { playersCounter };
   };
@@ -354,12 +353,6 @@ object: {
     def drawCards(NumToDraw) {
         gui.drawCards(NumToDraw);
         succ[2];
-
-        //succ[2] <- drawCards(NumToDraw);
-
-        // If you have no successor then stop
-        //if: ((succ[2] == self)) then: { log("End of point. No succ: " + succ[2])  } else: { succ[2] <- drawCards(NumToDraw) };
-        //if: ((succ[2] == self).not()) then: { succ[2] <- drawCards(NumToDraw); log("I am: " + succ[2]) } else: { log("Vsyo: " + succ[2]) };
     };
 
     def updateDeck(Deck) {
@@ -390,38 +383,8 @@ object: {
         gui.playTurn();
     };
 
-    def drawedCards(NumberOfCards, Deck, SenderFarRef) {
-        // Find id of the players from hash map of players.
-        //gui.getPlayerIdFromHMList(otherPlayersHashMap, SenderFarRef);
-        def opponentID := otherPlayersHashMap.getPlayerId(SenderFarRef);
-
-        myDeck := Deck;
-
-        // TODO
-
-        gui.updateDeck(Deck);
-
-        if:(opponentID == 0) then: {
-            if: (opponentID == myID-1) then: {
-                        gui.setRightPlayerCardCount(NumberOfCards);
-                     } else: {
-                        if:(opponentID == myID+1) then: {
-                            gui.setLeftPlayerCardCount(NumberOfCards);
-                        } else: {
-                            gui.setTopPlayerCardCount(NumberOfCards);
-                        };
-                     };
-        } else: {
-            if: (opponentID == myID+1) then: {
-                        gui.setLeftPlayerCardCount(NumberOfCards);
-                     } else: {
-                        if:(opponentID == myID-1) then: {
-                            gui.setRightPlayerCardCount(NumberOfCards);
-                        } else: {
-                            gui.setTopPlayerCardCount(NumberOfCards);
-                        };
-                     };
-        };
+    def skipTurn() {
+        localInterface.nextPlayer();
     };
 
     def goOnline() {
@@ -467,7 +430,7 @@ object: {
         // State Game Listener
         def unoGameStateProto := tuple: ["UnoGameState", var: `currentPlayerID, var: `moveDirection, var: `isGameEnded];
         ts.whenever: unoGameStateProto read: {
-            log("Game state has been updated!");
+            log("Game state has been updated! Current move direction is: " + moveDirection);
         };
 
 
