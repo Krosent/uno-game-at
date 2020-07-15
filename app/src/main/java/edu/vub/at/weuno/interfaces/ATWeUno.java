@@ -53,4 +53,7 @@ public interface ATWeUno {
     @Async
     void skipAction();
 
+    @Async
+    void plusFourWild();
+
 }

@@ -141,6 +141,27 @@ object: {
               };
               log("Total number of players = 3");
               } else: {
+                def a := otherPlayersHashMap.get(sortedKeysTable[1]);
+                def b := otherPlayersHashMap.get(sortedKeysTable[2]);
+                def c := otherPlayersHashMap.get(sortedKeysTable[3]);
+
+                if: ((myID > sortedKeysTable[1]).and: {myID < sortedKeysTable[2] }) then: {
+                    a <- setRightPlayerCardCount(Amount);
+                    b <- setLeftPlayerCardCount(Amount);
+                    c <- setTopPlayerCardCount(Amount);
+                } else: {
+                    if: ((myID > sortedKeysTable[2]).and: { myID < sortedKeysTable[3] }) then: {
+                        a <- setTopPlayerCardCount(Amount);
+                        b <- setRightPlayerCardCount(Amount);
+                        c <- setLeftPlayerCardCount(Amount);
+                    } else: {
+                        if: ((myID < sortedKeysTable[1]).or: { myID > sortedKeysTable[3] }) then: {
+                            a <- setLeftPlayerCardCount(Amount);
+                            b <- setTopPlayerCardCount(Amount);
+                            c <- setRightPlayerCardCount(Amount);
+                        }
+                    }
+                };
                 log("Total number of players = 4");
               }
               }
@@ -206,14 +227,14 @@ object: {
         def predID := -1;
         // Use this method only with sorted table.
         while: { notFound } do: {
-            if: (table[iterator] < currentID) then: {
-                if: (iterator == 1) then: {
-                    predID := table[table.length()];
-                    notFound := false;
-                } else: {
+            if: (iterator == 1) then: {
+                predID := table[table.length()];
+                notFound := false;
+            } else: {
+                 if: (table[iterator] < currentID) then: {
                     predID := table[iterator];
                     notFound := false;
-                };
+                 }
             };
             iterator := iterator - 1;
         };
@@ -284,6 +305,8 @@ object: {
 
         // Ask player to skip a turn
         playerFarRef <- skipTurn();
+
+        playerFarRef <- displayToast("You had to draw 2 cards and skipped the turn!");
     };
 
     def skipAction() {
@@ -292,6 +315,18 @@ object: {
 
         // Ask player to skip a turn
         playerFarRef <- skipTurn();
+
+        playerFarRef <- displayToast("You had to skip the round!");
+    };
+
+    def plusFourWild() {
+         def playerFarRef := getNextPlayerRef();
+
+        // Ask player to skip a turn
+        playerFarRef <- drawCards(4);
+        playerFarRef <- skipTurn();
+
+        playerFarRef <- displayToast("You had to draw 4 cards and skip the round!");
     };
 
     def initializeGame(Deck) {
@@ -352,7 +387,6 @@ object: {
 
     def drawCards(NumToDraw) {
         gui.drawCards(NumToDraw);
-        succ[2];
     };
 
     def updateDeck(Deck) {
@@ -385,6 +419,10 @@ object: {
 
     def skipTurn() {
         localInterface.nextPlayer();
+    };
+
+    def displayToast(Msg) {
+        gui.displayToast(Msg);
     };
 
     def goOnline() {

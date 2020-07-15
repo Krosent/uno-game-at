@@ -42,6 +42,10 @@ public class CardViewAdapter extends RecyclerView.Adapter<CardViewAdapter.ViewHo
         return mCards.size();
     }
 
+    public List<Card> getmCards() {
+        return mCards;
+    }
+
     @Override
     public void onViewMoved(int oldPosition, int newPosition) {
         Card targetcard = mCards.get(oldPosition);

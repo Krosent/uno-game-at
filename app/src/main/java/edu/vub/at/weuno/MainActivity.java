@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Random;
 import java.util.TreeMap;
 
 import edu.vub.at.IAT;
@@ -87,6 +88,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     private static final int _MSG_SWITCH_DIRECTION = 34;
     private static final int _MSG_PLUS_TWO_ACT = 245;
     private static final int _MSG_SKIP_MOVE_ACT = 253;
+    private static final int _MSG_PLUS_FOUR_WILD = 535;
     /*
         Update opponents' cards on the board.
      */
@@ -371,10 +373,40 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
             return true;
         } else {
             if(color == Card.Color.wild) {
-                if(action == Card.Action.plus4) {
+                /*
+                    In order to implement wild cards I decided not to let player choice the color, but random. I acknowledged that in classic rules player chooses a color.
+                    However this implementation could take more time and the course is mainly about distribution, hence I made this decision.
+                 */
 
+                // Set random generated color.
+                Card randomCard;
+                Random rand = new Random();
+                int randomNum = rand.nextInt((4 - 1) + 1) + 1;
+                // Random card generation could be done better, this implementation left for time saving. In the future can simply replaced by better one.
+                switch (randomNum) {
+                    case 1: randomCard = new Card(Card.Color.yellow, Card.Action.a0);
+                            break;
+                    case 2: randomCard = new Card(Card.Color.green, Card.Action.a0);
+                            break;
+                    case 3: randomCard = new Card(Card.Color.blue, Card.Action.a0);
+                        break;
+                    case 4: randomCard = new Card(Card.Color.red, Card.Action.a0);
+                        break;
+                    default: randomCard = new Card(Card.Color.green, Card.Action.a9);
+                }
+
+                if(action == Card.Action.plus4) {
+                    playCard(randomCard);
+                    getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, randomCard.getCardSerialized()));
+                    getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLUS_FOUR_WILD));
+                    return true;
                 } else if(action == Card.Action.color) {
-                    // TODO: You can select color of draw pile.
+                    // Set random generated color
+                    // Next player turn.
+
+                    playCard(randomCard);
+                    getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, randomCard.getCardSerialized()));
+                    return true;
                 }
 
             } else {
@@ -383,13 +415,20 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                     return false;
                 } else {
                     if(action == Card.Action.plus2) {
+                        playCard(card);
+                        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
                         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLUS_TWO_ACT));
                         return true;
                     } else if(action == Card.Action.reverse) {
+                        playCard(card);
+                        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
                         switchMoveDirection();
                         return true;
                     } else if(action == Card.Action.skip) {
-                        // TODO: Skip next player turn
+                        playCard(card);
+                        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
+                        getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_SKIP_MOVE_ACT));
+                        return true;
                     } else {
                         // If top card has the same color and that is a simple card 1-9, then you just return true and play that card.
                         playCard(card);
@@ -488,13 +527,23 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
     @Override
     public void playTurn() {
+        boolean havePlayableCards = false;
         int cardsCounter = adapter.getItemCount();
-        if(cardsCounter == 0 && isFirstMove) {
+        if (cardsCounter == 0 && isFirstMove) {
             drawCards(7);
         }
-        /*if(cardsCounter < 7) {
-            drawCards(7-cardsCounter);
-        }*/
+
+        for (Card card : adapter.getmCards()) {
+            if (card.getColor() == Card.Color.wild || drawingview.getTopCard().getColor() == card.getColor()) { havePlayableCards = true; break;}
+        }
+
+        if(!havePlayableCards) {
+            drawCards(1);
+            displayToast("Do not have card to play. Draw one card and skip this turn.");
+            getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
+            return;
+        }
+
         displayToast("Your Turn!");
     }
 
@@ -658,6 +707,10 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                     }
                     case _MSG_SKIP_MOVE_ACT: {
                         atwu.skipAction();
+                        break;
+                    }
+                    case _MSG_PLUS_FOUR_WILD: {
+                        atwu.plusFourWild();
                         break;
                     }
                 }
