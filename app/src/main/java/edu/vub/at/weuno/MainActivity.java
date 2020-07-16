@@ -331,6 +331,14 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         });
     }
 
+    public boolean outOfCards() {
+        return adapter.getItemCount() == 0;
+    }
+
+    public void endGame() {
+        // TODO: Implement
+    }
+
     @Override
     public boolean isCardPlayed(Card card) {
 
@@ -382,6 +390,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                     playCard(randomCard);
                     getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, randomCard.getCardSerialized()));
                     getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLUS_FOUR_WILD));
+                    if(outOfCards()) { endGame(); }
                     return true;
                 } else if(action == Card.Action.color) {
                     // Set random generated color
@@ -389,6 +398,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
                     playCard(randomCard);
                     getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, randomCard.getCardSerialized()));
+                    if(outOfCards()) { endGame(); }
                     return true;
                 }
 
@@ -401,16 +411,19 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                         playCard(card);
                         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
                         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLUS_TWO_ACT));
+                        if(outOfCards()) { endGame(); }
                         return true;
                     } else if(action == Card.Action.reverse) {
                         playCard(card);
                         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
                         switchMoveDirection();
+                        if(outOfCards()) { endGame(); }
                         return true;
                     } else if(action == Card.Action.skip) {
                         playCard(card);
                         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
                         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_SKIP_MOVE_ACT));
+                        if(outOfCards()) { endGame(); }
                         return true;
                     } else {
                         // If top card has the same color and that is a simple card 1-9, then you just return true and play that card.
@@ -418,6 +431,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
                         // Ask the next player to continue the game.
                         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
+                        if(outOfCards()) { endGame(); }
                         return true;
                     }
                 }

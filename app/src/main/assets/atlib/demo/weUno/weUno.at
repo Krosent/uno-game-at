@@ -468,15 +468,15 @@ object: {
     };
 
     def leftPlayerUnoSignal() {
-        getLeftPlayerRef() <- leftPlayerUnoSignal();
+        getLeftPlayerRef() <- playerUnoSignal();
     };
 
     def rightPlayerUnoSignal() {
-        getRightPlayerRef <- rightPlayerUnoSignal();
+        getRightPlayerRef <- playerUnoSignal();
     };
 
     def topPlayerUnoSignal() {
-        getTopPlayerRef <- topPlayerUnoSignal();
+        getTopPlayerRef <- playerUnoSignal();
     };
 
     def initializeGame(Deck) {
@@ -571,15 +571,7 @@ object: {
         localInterface.nextPlayer();
     };
 
-    def leftPlayerUnoSignal() {
-        gui.unoSignalVerification();
-    };
-
-    def rightPlayerUnoSignal() {
-        gui.unoSignalVerification();
-    };
-
-    def topPlayerUnoSignal() {
+    def playerUnoSignal() {
         gui.unoSignalVerification();
     };
 
@@ -625,7 +617,20 @@ object: {
                     if: (id != myID) then: { otherPlayersHashMap.put(id, player) }
                 }
              };
+
+
+             //whenever: player disconnected: {
+             //    log("Player disconnected");
+                 // TODO
+             //};
+
+             //whenever: player reconnected: {
+             //    log("Player reconnected");
+             //    // TODO
+             //};
         };
+
+
 
         // State Game Listener
         def unoGameStateProto := tuple: ["UnoGameState", var: `currentPlayerID, var: `moveDirection, var: `isGameEnded];
