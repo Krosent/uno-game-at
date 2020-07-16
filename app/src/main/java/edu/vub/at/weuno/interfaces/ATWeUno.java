@@ -26,7 +26,7 @@ public interface ATWeUno {
     @Async
     void playCard(String[] card);
 
-    /*
+    /**
         Update a number of opponent cards. Parameter amount states the number of cards player is holding.
      */
     @Async
@@ -56,4 +56,24 @@ public interface ATWeUno {
     @Async
     void plusFourWild();
 
+    /**
+     * This method is called when user on current device clicked uno button (when he had one card in hand)
+     */
+    @Async
+    void unoSignal();
+
+    /**
+     * These methods are used for checking whether your opponents playing unfair. In case if someone caught, he must draw two cards
+     */
+    @Async
+    void leftPlayerUnoSignal();
+
+    @Async
+    void rightPlayerUnoSignal();
+
+    @Async
+    void topPlayerUnoSignal();
+    /*
+        --------------------------
+     */
 }

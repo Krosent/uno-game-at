@@ -8,7 +8,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
-import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -28,11 +27,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Random;
-import java.util.TreeMap;
 
 import edu.vub.at.IAT;
 import edu.vub.at.android.util.IATAndroid;
@@ -55,7 +51,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     // Dialog UI Elements
     // Create the AlertDialog
     AlertDialog dialog;
-    AlertDialog colorPickerDialog;
     private AlertDialog.Builder builder;
     private LayoutInflater inflater;
     private View dialogView;
@@ -89,6 +84,10 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     private static final int _MSG_PLUS_TWO_ACT = 245;
     private static final int _MSG_SKIP_MOVE_ACT = 253;
     private static final int _MSG_PLUS_FOUR_WILD = 535;
+    private static final int MSG_UNO_SIGNAL = 317;
+    private static final int MSG_LEFT_UNO_SIGNAL = 933;
+    private static final int MSG_RIGHT_UNO_SIGNAL = 935;
+    private static final int MSG_TOP_UNO_SIGNAL = 936;
     /*
         Update opponents' cards on the board.
      */
@@ -101,11 +100,9 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     int playersCounter;
     boolean isGameStarted; // State which we need to check when we start the application.
     boolean isFirstMove;
+    boolean unoSignaled = false;
 
     Activity activity;
-
-    // TODO: State of current game (if disconected)
-    // TODO: Players Information
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -211,12 +208,23 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         btnUno.setOnClickListener(v -> {
             startUnoAnimation(animUnoBottom);
             //TODO: send uno signal to AmbientTalk world so that it can be distributed to others
+            getmHandler().sendMessage(Message.obtain(getmHandler(), MSG_UNO_SIGNAL));
         });
 
         // TODO: currently clicking on a player stack shows the uno animation, but it should behah changed to check if the player called uno in time
-        btnUnoTop.setOnClickListener(v -> { startUnoAnimation(animUnoTop); });
-        btnUnoLeft.setOnClickListener(v -> { startUnoAnimation(animUnoLeft); });
-        btnUnoRight.setOnClickListener(v -> { startUnoAnimation(animUnoRight); });
+        // TODO: If user has one card and someone caught it, then that user has to draw two cards as a penalty!
+        btnUnoTop.setOnClickListener(v -> {
+            startUnoAnimation(animUnoTop);
+            getmHandler().sendMessage(Message.obtain(getmHandler(), MSG_TOP_UNO_SIGNAL));
+        });
+        btnUnoLeft.setOnClickListener(v -> {
+            startUnoAnimation(animUnoLeft);
+            getmHandler().sendMessage(Message.obtain(getmHandler(), MSG_LEFT_UNO_SIGNAL));
+        });
+        btnUnoRight.setOnClickListener(v -> {
+            startUnoAnimation(animUnoRight);
+            getmHandler().sendMessage(Message.obtain(getmHandler(), MSG_RIGHT_UNO_SIGNAL));
+        });
 
         setLeftPlayerCardCount(0);
         setTopPlayerCardCount(0);
@@ -233,9 +241,9 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         });
     }
 
-    // TODO: call this when someone clicked start game.
+    // Call this when someone clicked start game.
     private void initGame() {
-        cardDeck = new Deck(); //TODO: do this when a new round has started
+        cardDeck = new Deck(); // New deck is initialized when game is started.
 
         // Sync deck between other players
         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_INIT_DECK_,
@@ -247,31 +255,9 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         // Disable dialog window on the device (MSG_INIT_DECK does the same for other devices)
         disableConnectionDialog();
 
-
-        // TODO: Draw one more card and instantly play it
-        // drawingview.playCard(cardDeck.peekTopCard());
-
         // Draw one card and then play it
-        drawCards(8); // automoticaly notifies about the change in draw pile.
+        drawCards(8); // Automatically notifies about the change in draw pile.
         adapter.playCardAndReturn(0);
-
-        // Draw 7 cards and ask another player to start play.
-        //drawCards(7);
-
-        //getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
-
-
-       // setLeftPlayerCardCount(0);
-       // setTopPlayerCardCount(0);
-        //setRightPlayerCardCount(0);
-
-
-
-        // Draw one card again and play it.
-
-        // Send move to the next user.
-
-        //startGame();
     }
 
 
@@ -286,10 +272,11 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         runOnUiThread(() -> {
             txtUno.setVisibility(View.VISIBLE);
             txtUno.startAnimation(animation);
+            getmHandler().sendMessage(Message.obtain(getmHandler(), MSG_UNO_SIGNAL));
         });
     }
 
-    //TODO: call this whenever the player has to draw cards
+    // Call this whenever the player has to draw cards
     public void drawCards(int n) {
         runOnUiThread(() -> {
             for (int i = 0; i < n; i++) {
@@ -299,17 +286,16 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
             drawingview.invalidate();
             getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_UPD_DECK, cardDeck.getDeckSerialized()));
             getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_UPD_OP_CARDS));
-
-
-            // notify other players about draw of cards.
-            // TODO: Notify other players about the draw. They have to update corresponding player on the deck.
-            // We pass there: number of draw cards, deck
        });
-
-
     }
 
-    //TODO: call these methods from AmbientTalk indicating that another player has said Uno
+    @Override
+    public void unoSignaled() {
+        unoSignaled = true;
+        btnUno.setVisibility(View.INVISIBLE);
+    }
+
+    // TODO: Call these methods from AmbientTalk indicating that another player has said Uno
     public void topUnoAnimation() {
         startUnoAnimation(animUnoTop);
     }
@@ -345,8 +331,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         });
     }
 
-    // this method is called when a user plays a card
-    // you should check if this is valid, if not you shouldn't update the drawingview and return false
     @Override
     public boolean isCardPlayed(Card card) {
 
@@ -363,7 +347,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
             isFirstMove = false;
         }
 
-        // TODO: Validate move:
         if(drawingview.getTopCard() == drawingview.blankCard()) {
             playCard(card);
             getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
@@ -453,20 +436,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
             drawingview.playCard(card);
             drawingview.invalidate();
         });
-
-        //getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
-    }
-
-
-    public void makeMove(Card card) {
-        if(isCardPlayed(card)) {
-
-            // notify other players
-        } else {
-
-        }
-
-        // TODO: HERE!
     }
 
     // Manage AmbientTalk Startup
@@ -510,18 +479,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
             runOnUiThread(() -> {
                 cardDeck = new Deck(deck_);
-
-                // Setup top card
-                ////drawingview.playCard(cardDeck.peekTopCard());
-
-
-                // Deck and Hand Views enable visibility
-                //dialog.hide();
-                //drawingview.setEnabled(true);
-                //drawingview.setVisibility(View.VISIBLE);
                 drawingview.invalidate();
-                // START GAME
-                //startGame();
             });
     }
 
@@ -533,15 +491,17 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
             drawCards(7);
         }
 
-        for (Card card : adapter.getmCards()) {
-            if (card.getColor() == Card.Color.wild || drawingview.getTopCard().getColor() == card.getColor()) { havePlayableCards = true; break;}
-        }
+        if(!isFirstMove) {
+            for (Card card : adapter.getmCards()) {
+                if (card.getColor() == Card.Color.wild || drawingview.getTopCard().getColor() == card.getColor()) { havePlayableCards = true; break;}
+            }
 
-        if(!havePlayableCards) {
-            drawCards(1);
-            displayToast("Do not have card to play. Draw one card and skip this turn.");
-            getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
-            return;
+            if(!havePlayableCards) {
+                drawCards(1);
+                displayToast("Do not have card to play. Draw one card and skip this turn.");
+                getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
+                return;
+            }
         }
 
         displayToast("Your Turn!");
@@ -553,53 +513,15 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     }
 
     @Override
-    public void startGame() {
-       // isGameStarted = true;
+    public void unoSignalVerification() {
+        // If a number of cards is strictly higher than one, then we do nothing.
+        if(adapter.getItemCount() > 1) {
+            unoSignaled = false;
+        }
 
-        // Setup top card
-        //drawingview.playCard(cardDeck.peekTopCard());
-
-        //drawingview.setLeftPlayerCount(0); //TODO: set initially to 0
-        //drawingview.setTopPlayerCount(0);
-        //drawingview.setRightPlayerCount(0);
-
-        // drawCards(7);
-
-    }
-
-    // Ask another player to draw n cards. We ask him explicitly but his or her id.
-    public void askDrawsCard(int number, int id) {
-        // TODO:
-    }
-
-    /*
-    Local storage functions.
-     */
-
-    public SharedPreferences getSharedPref() {
-        SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
-        return sharedPref;
-
-    }
-
-    public void putInt(String key, int value) {
-        SharedPreferences.Editor editor = getSharedPref().edit();
-        editor.putInt(key, value);
-        editor.commit();
-    }
-
-    public void putString(String key, String value) {
-        SharedPreferences.Editor editor = getSharedPref().edit();
-        editor.putString(key, value);
-        editor.commit();
-    }
-
-    public int getInt(String key) {
-        return getSharedPref().getInt(key, -1);
-    }
-
-    public String getString(String key) {
-        return getSharedPref().getString(key, "empty");
+        if(adapter.getItemCount() == 1 && !unoSignaled) {
+            drawCards(2);
+        }
     }
 
     public void displayToast(String toastText) {
@@ -674,7 +596,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
                     case _MSG_UPD_DECK: {
                         String[][] deck = (String[][]) msg.obj;
-                        // TODO:
                         atwu.setDeck(deck);
                         Log.i("UPD DECK", "" + deck.length);
                         break;
@@ -711,6 +632,22 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                     }
                     case _MSG_PLUS_FOUR_WILD: {
                         atwu.plusFourWild();
+                        break;
+                    }
+                    case MSG_UNO_SIGNAL: {
+                        atwu.unoSignal();
+                        break;
+                    }
+                    case MSG_LEFT_UNO_SIGNAL: {
+                        atwu.leftPlayerUnoSignal();
+                        break;
+                    }
+                    case MSG_RIGHT_UNO_SIGNAL: {
+                        atwu.rightPlayerUnoSignal();
+                        break;
+                    }
+                    case MSG_TOP_UNO_SIGNAL: {
+                        atwu.topPlayerUnoSignal();
                         break;
                     }
                 }

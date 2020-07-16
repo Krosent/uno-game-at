@@ -26,14 +26,15 @@ public interface JWeUno {
 
     void setRightPlayerCardCount(int n);
 
-    // start game
-    void startGame();
-
     void displayToast(String text);
 
     void playTurn();
 
     void switchMoveDirection();
+
+    void unoSignalVerification();
+
+    void unoSignaled();
 
 
     // finish game

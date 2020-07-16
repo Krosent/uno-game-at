@@ -25,7 +25,6 @@ object: {
 
   // isConnected variable is our condition checker.
   // !! We will not change myID if isConnected is true.
-  // --- TODO ---
   def isConnected := false;
 
   // Players who connected to the session. By default is zero.
@@ -36,7 +35,6 @@ object: {
   //HashMap of [id,Far Reference]
   // UPD: HashMap of [userID,[Username, Far Reference]]
   def otherPlayersHashMap := jlobby.java.util.HashMap.new();
-  // jlobby.edu.vub.at.weuno.treemapat.new();
 
   //Array of far references, avoids iterating over hashmap
   def otherPlayers := [];
@@ -102,13 +100,146 @@ object: {
 
     };
 
+    def getLeftPlayerRef() {
+        def keysTable := otherPlayersHashMap.keySet().toArray();
+        def sortedKeysTable := sort(keysTable);
+        def key := sortedKeysTable[1];
+        def leftPlayerRef;
+
+        if: (sortedKeysTable.length() == 1) then: {
+            if: (myID < key) then: {
+              leftPlayerRef := otherPlayersHashMap.get(key);
+            }
+        } else: {
+          if: (sortedKeysTable.length() == 2) then: {
+          def a := otherPlayersHashMap.get(sortedKeysTable[1]);
+          def b := otherPlayersHashMap.get(sortedKeysTable[2]);
+
+          if: ((myID > sortedKeysTable[1]).and: { myID < sortedKeysTable[2] }) then: {
+              leftPlayerRef := b;
+          } else: {
+              if: (myID < sortedKeysTable[1]) then: {
+                  leftPlayerRef := a;
+              }
+          };
+          } else: {
+            def a := otherPlayersHashMap.get(sortedKeysTable[1]);
+            def b := otherPlayersHashMap.get(sortedKeysTable[2]);
+            def c := otherPlayersHashMap.get(sortedKeysTable[3]);
+
+            if: ((myID > sortedKeysTable[1]).and: {myID < sortedKeysTable[2] }) then: {
+                leftPlayerRef := b;
+            } else: {
+                if: ((myID > sortedKeysTable[2]).and: { myID < sortedKeysTable[3] }) then: {
+                    leftPlayerRef := c;
+                } else: {
+                    if: ((myID < sortedKeysTable[1]).or: { myID > sortedKeysTable[3] }) then: {
+                        leftPlayerRef := a;
+                    }
+                }
+            };
+          }
+        };
+        leftPlayerRef;
+    };
+
+    def getRightPlayerRef() {
+        def keysTable := otherPlayersHashMap.keySet().toArray();
+        def sortedKeysTable := sort(keysTable);
+        def rightPlayerRef;
+
+        if: (sortedKeysTable.length() == 1) then: {
+          def key := sortedKeysTable[1];
+          if: (myID > key) then: {
+            rightPlayerRef := otherPlayersHashMap.get(key);
+          }
+        } else: {
+          if: (sortedKeysTable.length() == 2) then: {
+          def a := otherPlayersHashMap.get(sortedKeysTable[1]);
+          def b := otherPlayersHashMap.get(sortedKeysTable[2]);
+
+          if: ((myID > sortedKeysTable[1]).and: { myID < sortedKeysTable[2] }) then: {
+              rightPlayerRef := a;
+          } else: {
+              if: (myID > sortedKeysTable[2]) then: {
+                rightPlayerRef := b;
+              };
+          };
+          } else: {
+            def a := otherPlayersHashMap.get(sortedKeysTable[1]);
+            def b := otherPlayersHashMap.get(sortedKeysTable[2]);
+            def c := otherPlayersHashMap.get(sortedKeysTable[3]);
+
+            if: ((myID > sortedKeysTable[1]).and: {myID < sortedKeysTable[2] }) then: {
+                rightPlayerRef := a;
+            } else: {
+                if: ((myID > sortedKeysTable[2]).and: { myID < sortedKeysTable[3] }) then: {
+                   rightPlayerRef := b;
+                } else: {
+                    if: ((myID < sortedKeysTable[1]).or: { myID > sortedKeysTable[3] }) then: {
+                        rightPlayerRef := c;
+                    }
+                }
+            };
+          }
+        };
+        rightPlayerRef;
+    };
+
+    def getTopPlayerRef() {
+        def keysTable := otherPlayersHashMap.keySet().toArray();
+        def sortedKeysTable := sort(keysTable);
+        def topPlayerRef;
+
+        if: (sortedKeysTable.length() == 1) then: {
+          def key := sortedKeysTable[1];
+          if: (myID < key) then: {
+              otherPlayersHashMap.get(key) <- setLeftPlayerCardCount(Amount);
+          } else: {
+              otherPlayersHashMap.get(key) <- setRightPlayerCardCount(Amount);
+          };
+
+        } else: {
+          if: (sortedKeysTable.length() == 2) then: {
+          def a := otherPlayersHashMap.get(sortedKeysTable[1]);
+          def b := otherPlayersHashMap.get(sortedKeysTable[2]);
+
+          if: ((myID < sortedKeysTable[1]).and: { myID > sortedKeysTable[2] }) then: { } else: {
+              if: (myID < sortedKeysTable[1]) then: {
+                  topPlayerRef := b;
+              } else: {
+                  if: (myID > sortedKeysTable[2]) then: {
+                      topPlayerRef := a;
+                  };
+              };
+          };
+          } else: {
+            def a := otherPlayersHashMap.get(sortedKeysTable[1]);
+            def b := otherPlayersHashMap.get(sortedKeysTable[2]);
+            def c := otherPlayersHashMap.get(sortedKeysTable[3]);
+
+            if: ((myID > sortedKeysTable[1]).and: {myID < sortedKeysTable[2] }) then: {
+                topPlayerRef := c;
+            } else: {
+                if: ((myID > sortedKeysTable[2]).and: { myID < sortedKeysTable[3] }) then: {
+                    topPlayerRef := a;
+                } else: {
+                    if: ((myID < sortedKeysTable[1]).or: { myID > sortedKeysTable[3] }) then: {
+                        topPlayerRef := b;
+                    }
+                }
+            };
+          }
+        };
+        topPlayerRef;
+    };
 
     def updateOPcards(Amount) {
           def playerTupleTemplate := tuple: ["UnoPlayer", myID, var: `player, var: `isConnected];
           def thisPlayerTuple := ts.rdp(playerTupleTemplate);
           def thisPlayerFarRef := thisPlayerTuple.getField(3);
 
-   		def keysTable := otherPlayersHashMap.keySet().toArray();
+   		  def keysTable := otherPlayersHashMap.keySet().toArray();
           def sortedKeysTable := sort(keysTable);
 
           if: (sortedKeysTable.length() == 1) then: {
@@ -164,7 +295,7 @@ object: {
                 };
                 log("Total number of players = 4");
               }
-              }
+          }
 
     };
 
@@ -294,6 +425,9 @@ object: {
                 ts.inject: unoGameStateUpdatedTuple;
             }
         };
+
+        def playerFarRef := getNextPlayerRef();
+        playerFarRef <- displayToast("Move direction changed. Please play your turn!");
     };
 
     def plusTwoAction() {
@@ -327,6 +461,22 @@ object: {
         playerFarRef <- skipTurn();
 
         playerFarRef <- displayToast("You had to draw 4 cards and skip the round!");
+    };
+
+    def unoSignal() {
+        gui.unoSignaled();
+    };
+
+    def leftPlayerUnoSignal() {
+        getLeftPlayerRef() <- leftPlayerUnoSignal();
+    };
+
+    def rightPlayerUnoSignal() {
+        getRightPlayerRef <- rightPlayerUnoSignal();
+    };
+
+    def topPlayerUnoSignal() {
+        getTopPlayerRef <- topPlayerUnoSignal();
     };
 
     def initializeGame(Deck) {
@@ -419,6 +569,18 @@ object: {
 
     def skipTurn() {
         localInterface.nextPlayer();
+    };
+
+    def leftPlayerUnoSignal() {
+        gui.unoSignalVerification();
+    };
+
+    def rightPlayerUnoSignal() {
+        gui.unoSignalVerification();
+    };
+
+    def topPlayerUnoSignal() {
+        gui.unoSignalVerification();
     };
 
     def displayToast(Msg) {
