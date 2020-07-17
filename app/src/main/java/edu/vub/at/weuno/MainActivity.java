@@ -59,6 +59,12 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     private TextInputEditText playerNicknameEditText;
     private Button connectButton;
     private  Button startGameButton;
+
+    // End Game Dialog
+    AlertDialog endGameDialog;
+    AlertDialog.Builder endGameBuilder;
+    LayoutInflater endGameInflater;
+    View endGameDialogView;
     // -------
 
     // Game UI Elements
@@ -141,6 +147,12 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         connectButton = dialogView.findViewById(R.id.connectButton);
         startGameButton = dialogView.findViewById(R.id.startGameButton);
         startGameButton.setEnabled(false); // Disable start game button by default.
+
+        // Init end game dialog
+        AlertDialog endGameDialog = null;
+        AlertDialog.Builder endGameBuilder = new AlertDialog.Builder(this);
+        LayoutInflater endGameInflater = this.getLayoutInflater();
+        View endGameDialogView = endGameInflater.inflate(R.layout.dialog_endgame, null);
 
         // Init Game State
         // Default connected users counter;
@@ -335,8 +347,53 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         return adapter.getItemCount() == 0;
     }
 
+    @Override
+    public void enableEndGameDialog(String winner) {
+        runOnUiThread(() -> {
+            if(endGameDialog == null) {
+                endGameBuilder = new AlertDialog.Builder(this);
+                endGameInflater = this.getLayoutInflater();
+                endGameDialogView = endGameInflater.inflate(R.layout.dialog_endgame, null);
+
+                endGameBuilder.setView(endGameDialogView);
+                endGameBuilder.setCancelable(false);
+                endGameDialog = endGameBuilder.create();
+                endGameDialog.show();
+
+                TextView winnerName = endGameDialogView.findViewById(R.id.winnerNameTextView);
+                winnerName.setText(winner);
+            }
+        });
+    }
+
+    // Enable End Game Dialog on this device and others >> callback to endGameDialogHasBeenEnabled >> send own score >> callback to updateEndGameDialogValues
+
+    public void endGameDialogHasBeenEnabled() {
+        // TODO: Implement
+        // Send to others own score to others. Afterwards they should update their values.
+    }
+
+    public void updateEndGameDialogValues(int addScore) {
+        // TODO: Implement
+        runOnUiThread(() -> {
+            TextView winnerScore = endGameDialogView.findViewById(R.id.scoreNumTextView);
+
+            int totalScore = Integer.parseInt(winnerScore.getText().toString());
+            totalScore += addScore;
+            winnerScore.setText(getString(R.string.winnerScore, totalScore));
+        });
+    }
+
+    @Override
     public void endGame() {
         // TODO: Implement
+        // Ask all guys to enable dialog
+
+        //
+
+        // Add own result to a list
+
+        // Update UI
     }
 
     @Override

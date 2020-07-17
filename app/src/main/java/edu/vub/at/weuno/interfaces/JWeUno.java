@@ -36,6 +36,10 @@ public interface JWeUno {
 
     void unoSignaled();
 
+    void endGame();
+
+    void enableEndGameDialog(String winnerName);
+
 
     // finish game
     // verify end game

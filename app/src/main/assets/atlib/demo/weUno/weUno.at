@@ -8,7 +8,6 @@ def log(text) {
 };
 
 def makeWeUno(myID := /.at.support.util.randomNumberBetween(0, 125)) {
-object: {
   def ts; // tuple space
 
   // myID := /.at.support.util.randomNumberBetween(1, 125)
@@ -518,7 +517,6 @@ object: {
         myID;
     };
 
-
     def initializeGame(Deck) {
         myDeck := Deck;
         // Sync deck
@@ -597,7 +595,6 @@ object: {
         ts.whenever: playerTuple read: {
              if: (!otherPlayers.contains(player)) then: {
                 otherPlayers := otherPlayers + [player];
-
              };
 
              // Update gamers counter UI
@@ -618,19 +615,16 @@ object: {
                 }
              };
 
-
              //whenever: player disconnected: {
              //    log("Player disconnected");
-                 // TODO
+                  //TODO
              //};
 
              //whenever: player reconnected: {
              //    log("Player reconnected");
-             //    // TODO
+                 // TODO
              //};
         };
-
-
 
         // State Game Listener
         def unoGameStateProto := tuple: ["UnoGameState", var: `currentPlayerID, var: `moveDirection, var: `isGameEnded];
@@ -651,10 +645,7 @@ object: {
   // example symbiosis
   gui := Android.parent.registerAtApplication(localInterface);
   Android.parent.topUnoAnimation();
-
   }; //end-remoteInterface
-};
-
 };
 
 network.online;
