@@ -38,6 +38,8 @@ def makeWeUno(myID := /.at.support.util.randomNumberBetween(0, 125)) {
   //Array of far references, avoids iterating over hashmap
   def otherPlayers := [];
 
+  def disconnectedPlayers := [];
+
   def gui; // reference to Android UI object.
 
   deftype UnoPlayer;
@@ -410,7 +412,11 @@ def makeWeUno(myID := /.at.support.util.randomNumberBetween(0, 125)) {
 
     def nextPlayer() {
         def playerFarRef := getNextPlayerRef();
-        playerFarRef <- playTurn();
+        if: (disconnectedPlayers.contains(playerFarRef)) then: {
+            // TODO: Waiting the next player to be reconnected.
+        } else: {
+            playerFarRef <- playTurn();
+        }
     };
 
     def switchMoveDirection() {
@@ -476,6 +482,29 @@ def makeWeUno(myID := /.at.support.util.randomNumberBetween(0, 125)) {
 
     def topPlayerUnoSignal() {
         getTopPlayerRef <- playerUnoSignal();
+    };
+
+    def startEndGame() {
+        def onlinePlayersPrototype := tuple: ["UnoPlayer", var: `id, var: `player, true];
+        def onlinePlayersTuples := ts.rdg(onlinePlayersPrototype);
+
+        // Enable dialog on current device.
+        gui.enableEndGameDialog(myName);
+
+        // Ask others to do so.
+        onlinePlayersTuples.each: { |tuple| tuple.getField(3) <- enableDialogWindow(myName)};
+        onlinePlayersTuples.each: { |tuple| tuple.getField(3) <- requestToCalculateScore()};
+    };
+
+    def updateEndGameScoreUI(score) {
+        gui.updateEndGameDialogValues(score);
+    };
+
+    def updateEndGameScore(score) {
+        def finalScoreProto := tuple: ["UnoScore", var: `score, var: `playerID];
+        def finalScoreTuple := tuple: ["UnoScore", score, myID];
+
+        ts.inject: finalScoreTuple;
     };
 
     def initializeGame(Deck) {
@@ -577,6 +606,14 @@ def makeWeUno(myID := /.at.support.util.randomNumberBetween(0, 125)) {
         gui.displayToast(Msg);
     };
 
+    def enableDialogWindow(WinnerName) {
+        gui.enableEndGameDialog(WinnerName);
+    };
+
+    def requestToCalculateScore() {
+        gui.calculateScoreAndSendBack();
+    };
+
     def goOnline() {
         // setup peer-to-peer service discovery
         network.online();
@@ -588,6 +625,7 @@ def makeWeUno(myID := /.at.support.util.randomNumberBetween(0, 125)) {
 
         def selfTuple := tuple: ["UnoPlayer", myID, self, isConnected];
         log("MYSELF: " + myID);
+        log("MYSELF Ref: " + self);
 
         ts.inject: selfTuple;
 
@@ -614,16 +652,6 @@ def makeWeUno(myID := /.at.support.util.randomNumberBetween(0, 125)) {
                     if: (id != myID) then: { otherPlayersHashMap.put(id, player) }
                 }
              };
-
-             //whenever: player disconnected: {
-             //    log("Player disconnected");
-                  //TODO
-             //};
-
-             //whenever: player reconnected: {
-             //    log("Player reconnected");
-                 // TODO
-             //};
         };
 
         // State Game Listener
@@ -637,6 +665,12 @@ def makeWeUno(myID := /.at.support.util.randomNumberBetween(0, 125)) {
         ts.whenever: deckTuple read: {
             gui.setDeck(deck);
         };
+
+        def finalScoreProto := tuple: ["UnoScore", var: `score, var: `playerID];
+        ts.whenever: finalScoreProto read: {
+            localInterface.updateEndGameScoreUI(score);
+        };
+
     };
 
   goOnline();
@@ -646,6 +680,19 @@ def makeWeUno(myID := /.at.support.util.randomNumberBetween(0, 125)) {
   gui := Android.parent.registerAtApplication(localInterface);
   Android.parent.topUnoAnimation();
   }; //end-remoteInterface
+   export: remoteInterface as: UnoPlayer;
+   when: UnoPlayer discovered: { |player|
+        whenever: player disconnected: {
+           disconnectedPlayers := disconnectedPlayers + [player];
+           log("Player offline: " + player);
+          };
+        whenever: player reconnected: {
+        log("Buddy online: " + player);
+            disconnectedPlayers.filter({|el| el != player});
+            log("Player reconnected: " + player);
+            gui.playerReconnected();
+        };
+   };
 };
 
 network.online;

@@ -4,9 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
@@ -23,6 +21,7 @@ import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -75,6 +74,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     private TextView txtUno;
     private Button btnUno, btnUnoTop, btnUnoLeft, btnUnoRight;
     private Animation animUnoTop, animUnoBottom, animUnoLeft, animUnoRight;
+    private ProgressBar waitingBar;
     // -------
 
     // Constants
@@ -94,6 +94,8 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     private static final int MSG_LEFT_UNO_SIGNAL = 933;
     private static final int MSG_RIGHT_UNO_SIGNAL = 935;
     private static final int MSG_TOP_UNO_SIGNAL = 936;
+    private static final int MSG_ENABLE_ENDGAME_DIALOG = 940;
+    private static final int MSG_SEND_SCORE = 631;
     /*
         Update opponents' cards on the board.
      */
@@ -183,6 +185,9 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
             initGame();
         });
 
+        // Waiting disconnected player view
+        waitingBar = findViewById(R.id.waitingProgressBar);
+        waitingBar.setVisibility(View.INVISIBLE);
 
         // Init Deck View
         // set up hand stack
@@ -303,8 +308,10 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
     @Override
     public void unoSignaled() {
-        unoSignaled = true;
-        btnUno.setVisibility(View.INVISIBLE);
+        runOnUiThread(() -> {
+            unoSignaled = true;
+            btnUno.setVisibility(View.INVISIBLE);
+        });
     }
 
     // TODO: Call these methods from AmbientTalk indicating that another player has said Uno
@@ -364,14 +371,11 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                 winnerName.setText(winner);
             }
         });
+
+
     }
 
     // Enable End Game Dialog on this device and others >> callback to endGameDialogHasBeenEnabled >> send own score >> callback to updateEndGameDialogValues
-
-    public void endGameDialogHasBeenEnabled() {
-        // TODO: Implement
-        // Send to others own score to others. Afterwards they should update their values.
-    }
 
     public void updateEndGameDialogValues(int addScore) {
         // TODO: Implement
@@ -386,14 +390,54 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
     @Override
     public void endGame() {
-        // TODO: Implement
-        // Ask all guys to enable dialog
+        getmHandler().sendMessage(Message.obtain(getmHandler(), MSG_ENABLE_ENDGAME_DIALOG));
+    }
 
-        //
+    @Override
+    public void calculateScoreAndSendBack() {
+        int score = 0;
 
-        // Add own result to a list
+        for(Card card: adapter.getmCards()) {
+            Card.Action cardAction = card.getAction();
+            Card.Color cardColor = card.getColor();
 
-        // Update UI
+            if(cardColor == Card.Color.wild) {
+                score += 50;
+            }
+
+            if(cardAction == Card.Action.skip || cardAction == Card.Action.plus2 || cardAction == Card.Action.reverse) {
+                score += 20;
+            } else {
+                switch(cardAction) {
+                    case a0: score += 0; break;
+                    case a1: score += 1; break;
+                    case a2: score += 2; break;
+                    case a3: score += 3; break;
+                    case a4: score += 4; break;
+                    case a5: score += 5; break;
+                    case a6: score += 6; break;
+                    case a7: score += 7; break;
+                    case a8: score += 8; break;
+                    case a9: score += 9; break;
+                }
+            }
+        }
+
+        // total score
+        getmHandler().sendMessage(Message.obtain(getmHandler(), MSG_SEND_SCORE, score));
+    }
+
+    @Override
+    public void nextPlayerDisconnected() {
+        waitingBar.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    public void playerReconnected() {
+        // TODO
+        if(waitingBar.getVisibility() == View.VISIBLE) {
+            getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
+        }
     }
 
     @Override
@@ -720,6 +764,14 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                     case MSG_TOP_UNO_SIGNAL: {
                         atwu.topPlayerUnoSignal();
                         break;
+                    }
+                    case MSG_ENABLE_ENDGAME_DIALOG: {
+                        String winnerName = (String) msg.obj;
+                        atwu.enableDialogWindow();
+                    }
+                    case MSG_SEND_SCORE: {
+                        int score = (int) msg.obj;
+                        atwu.updateEndGameScore(score);
                     }
                 }
             }

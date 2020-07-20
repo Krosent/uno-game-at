@@ -76,4 +76,10 @@ public interface ATWeUno {
     /*
         --------------------------
      */
+
+    @Async
+    void enableDialogWindow();
+
+    @Async
+    void updateEndGameScore(int score);
 }

@@ -40,6 +40,11 @@ public interface JWeUno {
 
     void enableEndGameDialog(String winnerName);
 
+    void playerReconnected();
+
+    void nextPlayerDisconnected();
+
+    void calculateScoreAndSendBack();
 
     // finish game
     // verify end game
