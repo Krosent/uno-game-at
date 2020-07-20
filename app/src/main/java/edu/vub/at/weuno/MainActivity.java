@@ -78,30 +78,26 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     // -------
 
     // Constants
-    private static final int _MSG_NEW_PLAYER_ = 1;
-    private static final int _MSG_INIT_DECK_ = 2;
-    private static final int _MSG_ASK_DRAW_CARDS_ = 3;
-    private static final int _MSG_OFF_CONNECTION_DIALOG = 4;
-    private static final int _MSG_UPD_DECK = 5;
-    private static final int _MSG_NOTIFY_ABOUT_DRAW_ = 6;
-    private static final int _MSG_INIT_RELAT_ = 7;
-    private static final int  _MSG_PLAY_CARD = 8;
-    private static final int _MSG_SWITCH_DIRECTION = 34;
-    private static final int _MSG_PLUS_TWO_ACT = 245;
-    private static final int _MSG_SKIP_MOVE_ACT = 253;
-    private static final int _MSG_PLUS_FOUR_WILD = 535;
-    private static final int MSG_UNO_SIGNAL = 317;
-    private static final int MSG_LEFT_UNO_SIGNAL = 933;
-    private static final int MSG_RIGHT_UNO_SIGNAL = 935;
-    private static final int MSG_TOP_UNO_SIGNAL = 936;
-    private static final int MSG_ENABLE_ENDGAME_DIALOG = 940;
-    private static final int MSG_SEND_SCORE = 631;
+    private static final int _MSG_NEW_PLAYER_ = 101;
+    private static final int _MSG_INIT_DECK_ = 102;
+    private static final int _MSG_UPD_DECK = 103;
+    private static final int  _MSG_PLAY_CARD = 104;
+    private static final int _MSG_SWITCH_DIRECTION = 105;
+    private static final int _MSG_PLUS_TWO_ACT = 106;
+    private static final int _MSG_SKIP_MOVE_ACT = 107;
+    private static final int _MSG_PLUS_FOUR_WILD = 108;
+    private static final int MSG_UNO_SIGNAL = 109;
+    private static final int MSG_LEFT_UNO_SIGNAL = 110;
+    private static final int MSG_RIGHT_UNO_SIGNAL = 111;
+    private static final int MSG_TOP_UNO_SIGNAL = 112;
+    private static final int MSG_ENABLE_ENDGAME_DIALOG = 113;
+    private static final int MSG_SEND_SCORE = 114;
     /*
         Update opponents' cards on the board.
      */
-    private static final int _MSG_UPD_OP_CARDS = 9;
+    private static final int _MSG_UPD_OP_CARDS = 115;
 
-    private static final int _MSG_NEXT_PLAYER_MOVE = 10;
+    private static final int _MSG_NEXT_PLAYER_MOVE = 116;
     // -------
 
     // Global Game Variables
@@ -378,7 +374,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     // Enable End Game Dialog on this device and others >> callback to endGameDialogHasBeenEnabled >> send own score >> callback to updateEndGameDialogValues
 
     public void updateEndGameDialogValues(int addScore) {
-        // TODO: Implement
         runOnUiThread(() -> {
             TextView winnerScore = endGameDialogView.findViewById(R.id.scoreNumTextView);
 
@@ -599,14 +594,16 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     }
 
     @Override
-    public void playTurn() {
+    public void playTurn() throws InterruptedException {
         boolean havePlayableCards = false;
         int cardsCounter = adapter.getItemCount();
         if (cardsCounter == 0 && isFirstMove) {
             drawCards(7);
+            // Barrier thread sleep to sync data before move, used in case if this is the first move.
+            Thread.sleep(1000);
         }
 
-        if(!isFirstMove) {
+        //if(!isFirstMove) {
             for (Card card : adapter.getmCards()) {
                 if (card.getColor() == Card.Color.wild || drawingview.getTopCard().getColor() == card.getColor()) { havePlayableCards = true; break;}
             }
@@ -617,7 +614,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                 getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
                 return;
             }
-        }
+        //}
 
         displayToast("Your Turn!");
     }

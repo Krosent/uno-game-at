@@ -28,7 +28,7 @@ public interface JWeUno {
 
     void displayToast(String text);
 
-    void playTurn();
+    void playTurn() throws InterruptedException;
 
     void switchMoveDirection();
 
@@ -45,8 +45,4 @@ public interface JWeUno {
     void nextPlayerDisconnected();
 
     void calculateScoreAndSendBack();
-
-    // finish game
-    // verify end game
-
 }

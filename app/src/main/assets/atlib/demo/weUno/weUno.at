@@ -622,10 +622,9 @@ def makeWeUno(myID := /.at.support.util.randomNumberBetween(0, 125)) {
         ts.goOnline(); // start exchanging public tuples
 
         // Announce myself
-
         def selfTuple := tuple: ["UnoPlayer", myID, self, isConnected];
-        log("MYSELF: " + myID);
-        log("MYSELF Ref: " + self);
+        log("This device ID: " + myID);
+        log("This device Ref:  " + self);
 
         ts.inject: selfTuple;
 
