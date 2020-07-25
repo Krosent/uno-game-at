@@ -424,15 +424,20 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
     @Override
     public void nextPlayerDisconnected() {
-        waitingBar.setVisibility(View.VISIBLE);
+        runOnUiThread(() -> {
+            waitingBar.setVisibility(View.VISIBLE);
+        });
     }
 
     @Override
     public void playerReconnected() {
         // TODO
-        if(waitingBar.getVisibility() == View.VISIBLE) {
-            getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
-        }
+        runOnUiThread(() -> {
+            if(waitingBar.getVisibility() == View.VISIBLE) {
+                waitingBar.setVisibility(View.INVISIBLE);
+                getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
+            }
+        });
     }
 
     @Override

@@ -412,8 +412,11 @@ def makeWeUno(myID := /.at.support.util.randomNumberBetween(0, 125)) {
 
     def nextPlayer() {
         def playerFarRef := getNextPlayerRef();
+        log("disc players:" + disconnectedPlayers);
         if: (disconnectedPlayers.contains(playerFarRef)) then: {
             // TODO: Waiting the next player to be reconnected.
+            gui.nextPlayerDisconnected();
+            gui.displayToast("Next Player is not available. Let us wait until he appears on network!");
         } else: {
             playerFarRef <- playTurn();
         }
@@ -686,8 +689,10 @@ def makeWeUno(myID := /.at.support.util.randomNumberBetween(0, 125)) {
            log("Player offline: " + player);
           };
         whenever: player reconnected: {
-        log("Buddy online: " + player);
-            disconnectedPlayers.filter({|el| el != player});
+            log("Buddy online: " + player);
+            def temp := [];
+            foreach: { |el| if: ((""+el) != (""+player)) then: { temp := temp + [el]; } } in: disconnectedPlayers;
+            disconnectedPlayers := temp;
             log("Player reconnected: " + player);
             gui.playerReconnected();
         };
