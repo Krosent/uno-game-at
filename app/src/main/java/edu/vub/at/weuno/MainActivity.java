@@ -456,7 +456,11 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
             isFirstMove = false;
         }
 
-        if(drawingview.getTopCard() == drawingview.blankCard()) {
+        /*
+         * In case if top card is blank card or the top card is a wild one, player can play any card he or she wants.
+         * This rule is made in case if game just has been started or if the first generated card is wild one.
+         */
+        if(drawingview.getTopCard() == drawingview.blankCard() || drawingview.getTopCard().getColor() == Card.Color.wild) {
             playCard(card);
             getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
             // Ask the next player to continue the game.
@@ -494,15 +498,11 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                     if(outOfCards()) { endGame(); }
                     return true;
                 } else if(action == Card.Action.color) {
-                    // Set random generated color
-                    // Next player turn.
-
                     playCard(randomCard);
                     getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, randomCard.getCardSerialized()));
                     if(outOfCards()) { endGame(); }
                     return true;
                 }
-
             } else {
                 if(color != topCardColor) {
                     displayToast("You cannot play this card! Please try another one.");
@@ -538,7 +538,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                 }
             }
         }
-
         // If move is not validated -> return false!
         return false;
     }
@@ -546,7 +545,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     // Update top card on this device.
     public void playCard(Card card) {
         // Update local UI
-        // TODO:
         runOnUiThread(() -> {
             drawingview.playCard(card);
             drawingview.invalidate();
@@ -607,8 +605,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
             // Barrier thread sleep to sync data before move, used in case if this is the first move.
             Thread.sleep(1000);
         }
-
-        //if(!isFirstMove) {
+        
             for (Card card : adapter.getmCards()) {
                 if (card.getColor() == Card.Color.wild || drawingview.getTopCard().getColor() == card.getColor()) { havePlayableCards = true; break;}
             }
@@ -619,8 +616,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                 getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
                 return;
             }
-        //}
-
         displayToast("Your Turn!");
     }
 
