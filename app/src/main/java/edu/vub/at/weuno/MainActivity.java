@@ -42,6 +42,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     private static ATWeUno atwu;
     // Handler to communicate UI <-> AT threads.
     private static Handler mHandler;
+
     public static Handler getmHandler() {
         return mHandler;
     }
@@ -57,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     private TextView playerCountTextView;
     private TextInputEditText playerNicknameEditText;
     private Button connectButton;
-    private  Button startGameButton;
+    private Button startGameButton;
 
     // End Game Dialog
     AlertDialog endGameDialog;
@@ -74,14 +75,17 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     private TextView txtUno;
     private Button btnUno, btnUnoTop, btnUnoLeft, btnUnoRight;
     private Animation animUnoTop, animUnoBottom, animUnoLeft, animUnoRight;
+    // Left Bar. Appears when next player is not connected.
     private ProgressBar waitingBar;
+    // Right Bar. Appears when this is not your turn.
+    private ProgressBar waitYourTurnBar;
     // -------
 
     // Constants
     private static final int _MSG_NEW_PLAYER_ = 101;
     private static final int _MSG_INIT_DECK_ = 102;
     private static final int _MSG_UPD_DECK = 103;
-    private static final int  _MSG_PLAY_CARD = 104;
+    private static final int _MSG_PLAY_CARD = 104;
     private static final int _MSG_SWITCH_DIRECTION = 105;
     private static final int _MSG_PLUS_TWO_ACT = 106;
     private static final int _MSG_SKIP_MOVE_ACT = 107;
@@ -98,6 +102,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     private static final int _MSG_UPD_OP_CARDS = 115;
 
     private static final int _MSG_NEXT_PLAYER_MOVE = 116;
+    private static final int MSG_REQUEST_ENABLE_WAITING_BAR = 117;
     // -------
 
     // Global Game Variables
@@ -105,6 +110,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     boolean isGameStarted; // State which we need to check when we start the application.
     boolean isFirstMove;
     boolean unoSignaled = false;
+    boolean thisPlayerTurn = false;
 
     Activity activity;
 
@@ -160,7 +166,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         isFirstMove = true;
 
         connectButton.setOnClickListener(v -> {
-            if(playerNicknameEditText.getText().toString().isEmpty()) {
+            if (playerNicknameEditText.getText().toString().isEmpty()) {
                 // Display warning that user should have a name;
                 Toast.makeText(this, "You have to enter your name", Toast.LENGTH_SHORT)
                         .show();
@@ -185,6 +191,9 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         waitingBar = findViewById(R.id.waitingProgressBar);
         waitingBar.setVisibility(View.INVISIBLE);
 
+        waitYourTurnBar = findViewById(R.id.waitTurnBar);
+        waitYourTurnBar.setVisibility(View.INVISIBLE);
+
         // Init Deck View
         // set up hand stack
         ArrayList<Card> cards = new ArrayList<>();
@@ -203,8 +212,8 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         // reference the uno button and text view
         txtUno = findViewById(R.id.txtUno);
         btnUno = findViewById(R.id.btnUno);
-        btnUnoTop   = findViewById(R.id.btnUnoTop);
-        btnUnoLeft  = findViewById(R.id.btnUnoLeft);
+        btnUnoTop = findViewById(R.id.btnUnoTop);
+        btnUnoLeft = findViewById(R.id.btnUnoLeft);
         btnUnoRight = findViewById(R.id.btnUnoRight);
 
         MoveAndPlaceHelper mh = new MoveAndPlaceHelper(adapter);
@@ -212,20 +221,17 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         touchHelper.attachToRecyclerView(handView);
 
         // setup animations
-        animUnoTop    = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.uno_top);
+        animUnoTop = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.uno_top);
         animUnoBottom = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.uno_bottom);
-        animUnoLeft   = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.uno_left);
-        animUnoRight  = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.uno_right);
+        animUnoLeft = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.uno_left);
+        animUnoRight = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.uno_right);
 
         // show uno animation on click
         btnUno.setOnClickListener(v -> {
             startUnoAnimation(animUnoBottom);
-            //TODO: send uno signal to AmbientTalk world so that it can be distributed to others
             getmHandler().sendMessage(Message.obtain(getmHandler(), MSG_UNO_SIGNAL));
         });
 
-        // TODO: currently clicking on a player stack shows the uno animation, but it should behah changed to check if the player called uno in time
-        // TODO: If user has one card and someone caught it, then that user has to draw two cards as a penalty!
         btnUnoTop.setOnClickListener(v -> {
             startUnoAnimation(animUnoTop);
             getmHandler().sendMessage(Message.obtain(getmHandler(), MSG_TOP_UNO_SIGNAL));
@@ -246,7 +252,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     }
 
     @Override
-        public void disableConnectionDialog() {
+    public void disableConnectionDialog() {
         runOnUiThread(() -> {
             dialog.hide();
             drawingview.setEnabled(true);
@@ -274,14 +280,12 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     }
 
 
-
-
     @Override
     public void setGameState() {
         isGameStarted = true;
     }
 
-    public void startUnoAnimation(Animation animation){
+    public void startUnoAnimation(Animation animation) {
         runOnUiThread(() -> {
             txtUno.setVisibility(View.VISIBLE);
             txtUno.startAnimation(animation);
@@ -299,7 +303,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
             drawingview.invalidate();
             getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_UPD_DECK, cardDeck.getDeckSerialized()));
             getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_UPD_OP_CARDS));
-       });
+        });
     }
 
     @Override
@@ -314,9 +318,11 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     public void topUnoAnimation() {
         startUnoAnimation(animUnoTop);
     }
+
     public void leftUnoAnimation() {
         startUnoAnimation(animUnoLeft);
     }
+
     public void rightUnoAnimation() {
         startUnoAnimation(animUnoRight);
     }
@@ -353,7 +359,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     @Override
     public void enableEndGameDialog(String winner) {
         runOnUiThread(() -> {
-            if(endGameDialog == null) {
+            if (endGameDialog == null) {
                 endGameBuilder = new AlertDialog.Builder(this);
                 endGameInflater = this.getLayoutInflater();
                 endGameDialogView = endGameInflater.inflate(R.layout.dialog_endgame, null);
@@ -370,8 +376,6 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
 
     }
-
-    // Enable End Game Dialog on this device and others >> callback to endGameDialogHasBeenEnabled >> send own score >> callback to updateEndGameDialogValues
 
     public void updateEndGameDialogValues(int addScore) {
         runOnUiThread(() -> {
@@ -392,28 +396,48 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     public void calculateScoreAndSendBack() {
         int score = 0;
 
-        for(Card card: adapter.getmCards()) {
+        for (Card card : adapter.getmCards()) {
             Card.Action cardAction = card.getAction();
             Card.Color cardColor = card.getColor();
 
-            if(cardColor == Card.Color.wild) {
+            if (cardColor == Card.Color.wild) {
                 score += 50;
             }
 
-            if(cardAction == Card.Action.skip || cardAction == Card.Action.plus2 || cardAction == Card.Action.reverse) {
+            if (cardAction == Card.Action.skip || cardAction == Card.Action.plus2 || cardAction == Card.Action.reverse) {
                 score += 20;
             } else {
-                switch(cardAction) {
-                    case a0: score += 0; break;
-                    case a1: score += 1; break;
-                    case a2: score += 2; break;
-                    case a3: score += 3; break;
-                    case a4: score += 4; break;
-                    case a5: score += 5; break;
-                    case a6: score += 6; break;
-                    case a7: score += 7; break;
-                    case a8: score += 8; break;
-                    case a9: score += 9; break;
+                switch (cardAction) {
+                    case a0:
+                        score += 0;
+                        break;
+                    case a1:
+                        score += 1;
+                        break;
+                    case a2:
+                        score += 2;
+                        break;
+                    case a3:
+                        score += 3;
+                        break;
+                    case a4:
+                        score += 4;
+                        break;
+                    case a5:
+                        score += 5;
+                        break;
+                    case a6:
+                        score += 6;
+                        break;
+                    case a7:
+                        score += 7;
+                        break;
+                    case a8:
+                        score += 8;
+                        break;
+                    case a9:
+                        score += 9;
+                        break;
                 }
             }
         }
@@ -433,7 +457,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     public void playerReconnected() {
         // TODO
         runOnUiThread(() -> {
-            if(waitingBar.getVisibility() == View.VISIBLE) {
+            if (waitingBar.getVisibility() == View.VISIBLE) {
                 waitingBar.setVisibility(View.INVISIBLE);
                 getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
             }
@@ -450,17 +474,23 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
         Card.Color topCardColor = topCard.getColor();
         Card.Action topCardAction = topCard.getAction();
 
-        if(!isFirstMove) {
+        if (!isFirstMove) {
             btnUno.setVisibility(adapter.getItemCount() < 2 ? View.VISIBLE : View.INVISIBLE);
+
+            if(!thisPlayerTurn) {
+                displayToast("This is not your turn. Please wait!");
+                return false;
+            }
         } else {
             isFirstMove = false;
         }
+
 
         /*
          * In case if top card is blank card or the top card is a wild one, player can play any card he or she wants.
          * This rule is made in case if game just has been started or if the first generated card is wild one.
          */
-        if(drawingview.getTopCard() == drawingview.blankCard() || drawingview.getTopCard().getColor() == Card.Color.wild) {
+        if (drawingview.getTopCard() == drawingview.blankCard() || drawingview.getTopCard().getColor() == Card.Color.wild) {
             playCard(card);
             getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
             // Ask the next player to continue the game.
@@ -468,7 +498,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
             return true;
         } else {
-            if(color == Card.Color.wild) {
+            if (color == Card.Color.wild) {
                 /*
                     In order to implement wild cards I decided not to let player choice the color, but random. I acknowledged that in classic rules player chooses a color.
                     However this implementation could take more time and the course is mainly about distribution, hence I made this decision.
@@ -480,51 +510,69 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                 int randomNum = rand.nextInt((4 - 1) + 1) + 1;
                 // Random card generation could be done better, this implementation left for time saving. In the future can simply replaced by better one.
                 switch (randomNum) {
-                    case 1: randomCard = new Card(Card.Color.yellow, Card.Action.a0);
-                            break;
-                    case 2: randomCard = new Card(Card.Color.green, Card.Action.a0);
-                            break;
-                    case 3: randomCard = new Card(Card.Color.blue, Card.Action.a0);
+                    case 1:
+                        randomCard = new Card(Card.Color.yellow, Card.Action.a0);
                         break;
-                    case 4: randomCard = new Card(Card.Color.red, Card.Action.a0);
+                    case 2:
+                        randomCard = new Card(Card.Color.green, Card.Action.a0);
                         break;
-                    default: randomCard = new Card(Card.Color.green, Card.Action.a9);
+                    case 3:
+                        randomCard = new Card(Card.Color.blue, Card.Action.a0);
+                        break;
+                    case 4:
+                        randomCard = new Card(Card.Color.red, Card.Action.a0);
+                        break;
+                    default:
+                        randomCard = new Card(Card.Color.green, Card.Action.a9);
                 }
 
-                if(action == Card.Action.plus4) {
+                if (action == Card.Action.plus4) {
                     playCard(randomCard);
                     getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, randomCard.getCardSerialized()));
                     getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLUS_FOUR_WILD));
-                    if(outOfCards()) { endGame(); }
+                    if (outOfCards()) {
+                        endGame();
+                    }
                     return true;
-                } else if(action == Card.Action.color) {
+                } else if (action == Card.Action.color) {
                     playCard(randomCard);
                     getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, randomCard.getCardSerialized()));
-                    if(outOfCards()) { endGame(); }
+                    // Ask the next player to continue the game.
+                    getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
+
+                    if (outOfCards()) {
+                        endGame();
+                    }
                     return true;
                 }
             } else {
-                if(color != topCardColor) {
+                if (color != topCardColor) {
                     displayToast("You cannot play this card! Please try another one.");
                     return false;
                 } else {
-                    if(action == Card.Action.plus2) {
+                    if (action == Card.Action.plus2) {
                         playCard(card);
                         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
                         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLUS_TWO_ACT));
-                        if(outOfCards()) { endGame(); }
+                        if (outOfCards()) {
+                            endGame();
+                        }
                         return true;
-                    } else if(action == Card.Action.reverse) {
+                    } else if (action == Card.Action.reverse) {
                         playCard(card);
                         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
                         switchMoveDirection();
-                        if(outOfCards()) { endGame(); }
+                        if (outOfCards()) {
+                            endGame();
+                        }
                         return true;
-                    } else if(action == Card.Action.skip) {
+                    } else if (action == Card.Action.skip) {
                         playCard(card);
                         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
                         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_SKIP_MOVE_ACT));
-                        if(outOfCards()) { endGame(); }
+                        if (outOfCards()) {
+                            endGame();
+                        }
                         return true;
                     } else {
                         // If top card has the same color and that is a simple card 1-9, then you just return true and play that card.
@@ -532,7 +580,9 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_PLAY_CARD, card.getCardSerialized()));
                         // Ask the next player to continue the game.
                         getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
-                        if(outOfCards()) { endGame(); }
+                        if (outOfCards()) {
+                            endGame();
+                        }
                         return true;
                     }
                 }
@@ -561,7 +611,7 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                     lt.start();
 
                     mHandler = lt.mHandler;
-                    new StartIATTask().execute((Void)null);
+                    new StartIATTask().execute((Void) null);
                 }
                 break;
         }
@@ -583,40 +633,47 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
 
     @Override
     public void setDeck(String[][] deck) {
-            LinkedList<Card> deck_ = new LinkedList<>();
+        LinkedList<Card> deck_ = new LinkedList<>();
 
-            for(int i=0; i<deck.length; i++) {
-                    deck_.add(new Card(Card.Color.valueOf(deck[i][0]),
-                            Card.Action.valueOf(deck[i][1])));
-            }
+        for (int i = 0; i < deck.length; i++) {
+            deck_.add(new Card(Card.Color.valueOf(deck[i][0]),
+                    Card.Action.valueOf(deck[i][1])));
+        }
 
-            runOnUiThread(() -> {
-                cardDeck = new Deck(deck_);
-                drawingview.invalidate();
-            });
+        runOnUiThread(() -> {
+            cardDeck = new Deck(deck_);
+            drawingview.invalidate();
+        });
     }
 
     @Override
     public void playTurn() throws InterruptedException {
         boolean havePlayableCards = false;
+        thisPlayerTurn = true;
         int cardsCounter = adapter.getItemCount();
         if (cardsCounter == 0 && isFirstMove) {
             drawCards(7);
             // Barrier thread sleep to sync data before move, used in case if this is the first move.
             Thread.sleep(1000);
         }
-        
-            for (Card card : adapter.getmCards()) {
-                if (card.getColor() == Card.Color.wild || drawingview.getTopCard().getColor() == card.getColor()) { havePlayableCards = true; break;}
-            }
 
-            if(!havePlayableCards) {
-                drawCards(1);
-                displayToast("Do not have card to play. Draw one card and skip this turn.");
-                getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
-                return;
+        for (Card card : adapter.getmCards()) {
+            if (card.getColor() == Card.Color.wild || drawingview.getTopCard().getColor() == card.getColor()) {
+                havePlayableCards = true;
+                break;
             }
+        }
+
+        if (!havePlayableCards) {
+            drawCards(1);
+            displayToast("Do not have card to play. Draw one card and skip this turn.");
+            getmHandler().sendMessage(Message.obtain(getmHandler(), _MSG_NEXT_PLAYER_MOVE));
+            return;
+        }
         displayToast("Your Turn!");
+        // disable waiting bar for itself, but enable for the rest of the players
+        disableNextPlayerWaitingBar();
+        getmHandler().sendMessage(Message.obtain(getmHandler(), MSG_REQUEST_ENABLE_WAITING_BAR));
     }
 
     @Override
@@ -627,11 +684,11 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     @Override
     public void unoSignalVerification() {
         // If a number of cards is strictly higher than one, then we do nothing.
-        if(adapter.getItemCount() > 1) {
+        if (adapter.getItemCount() > 1) {
             unoSignaled = false;
         }
 
-        if(adapter.getItemCount() == 1 && !unoSignaled) {
+        if (adapter.getItemCount() == 1 && !unoSignaled) {
             drawCards(2);
         }
     }
@@ -643,6 +700,21 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
     @Override
     public void disableConnectButton() {
         runOnUiThread(() -> connectButton.setEnabled(false));
+    }
+
+    @Override
+    public void enableNextPlayerWaitingBar() {
+        runOnUiThread(() -> {
+            thisPlayerTurn = false;
+            waitYourTurnBar.setVisibility(View.VISIBLE);
+        });
+    }
+
+    @Override
+    public void disableNextPlayerWaitingBar() {
+        runOnUiThread(() -> {
+            waitYourTurnBar.setVisibility(View.INVISIBLE);
+        });
     }
 
     @Override
@@ -769,6 +841,9 @@ public class MainActivity extends AppCompatActivity implements HandAction, JWeUn
                     case MSG_SEND_SCORE: {
                         int score = (int) msg.obj;
                         atwu.updateEndGameScore(score);
+                    }
+                    case MSG_REQUEST_ENABLE_WAITING_BAR: {
+                        atwu.requestOtherPlayersEnableWaitingBar();
                     }
                 }
             }

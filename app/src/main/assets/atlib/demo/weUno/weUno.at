@@ -510,6 +510,20 @@ def makeWeUno(myID := /.at.support.util.randomNumberBetween(0, 125)) {
         ts.inject: finalScoreTuple;
     };
 
+    def requestOtherPlayersEnableWaitingBar() {
+        def onlinePlayersPrototype := tuple: ["UnoPlayer", var: `id, var: `player, true];
+        def onlinePlayersTuples := ts.rdg(onlinePlayersPrototype);
+
+        // Ask others to do so.
+        // onlinePlayersTuples.each: { |tuple| tuple.getField(3) <- enableNextPlayerWaitingBar()};
+        def valIt := otherPlayersHashMap.values().iterator();
+
+         while: { valIt.hasNext() } do: {
+            def value := valIt.next();
+            value <- enableNextPlayerWaitingBar();
+         }
+    };
+
     def initializeGame(Deck) {
         // Deck tuple in format ["UnoDeck", var: `deck]
         def deckTuple := tuple: ["UnoDeck", Deck];
@@ -615,6 +629,10 @@ def makeWeUno(myID := /.at.support.util.randomNumberBetween(0, 125)) {
 
     def requestToCalculateScore() {
         gui.calculateScoreAndSendBack();
+    };
+
+    def enableNextPlayerWaitingBar() {
+        gui.enableNextPlayerWaitingBar();
     };
 
     def goOnline() {

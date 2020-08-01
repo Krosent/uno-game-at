@@ -113,4 +113,7 @@ public interface ATWeUno {
      */
     @Async
     void updateEndGameScore(int score);
+
+    @Async
+    void requestOtherPlayersEnableWaitingBar();
 }

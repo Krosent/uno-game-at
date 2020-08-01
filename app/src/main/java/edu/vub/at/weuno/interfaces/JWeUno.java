@@ -17,6 +17,10 @@ public interface JWeUno {
      */
     void disableConnectButton();
 
+    void enableNextPlayerWaitingBar();
+
+    void disableNextPlayerWaitingBar();
+
     /*
      * Method for enabling game button when number of players reached to two and less than four.
      */
